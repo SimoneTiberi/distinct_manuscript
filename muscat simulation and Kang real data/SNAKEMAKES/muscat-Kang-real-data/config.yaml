@@ -1,0 +1,15 @@
+R: "/usr/local/R/R-4.0.0/bin/R"
+
+scripts: "scripts/"
+utils: "scripts/utils.R"
+
+dids: ["kang"]
+mids: "meta/meth_ids.csv"
+
+run_pars: "meta/run_pars/"
+meth_pars: "meta/meth_pars/"
+
+raw_data: "data/raw_data/"
+
+results: "KANG/output/"
+logs: "logs/"

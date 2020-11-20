@@ -1,0 +1,56 @@
+# did: reference dataset ID
+# sid: simulation ID
+# mid: method ID
+
+# i: simulation replicate
+# j: method run replicate
+
+# g: # genes
+# c: # cells
+# k: # clusters
+# s: # samples
+
+import pandas as pd
+import json
+import re
+
+configfile: "config.yaml"
+R = config["R"]
+
+# check for updates in simulation, run, method parameters
+l = config["logs"]
+onstart:
+        shell("{R} CMD BATCH --no-restore --no-save scripts/meth_pars.R '{l}meth_pars.Rout'")
+
+mids = pd.read_csv(config["mids"])
+mids = mids.set_index(mids["id"])
+
+rule all:
+        input:  
+                expand("KANG/output/DS_results_{mid}.rds",\
+                  mid = mids.id)
+
+rule run_meth_kang:
+        priority: 10
+        threads: 1
+        input:  script = config["scripts"] + "run_meth_kang.R",
+                        sce = "data/raw_data/sce0_kang.rds",
+                        meth_pars = config["meth_pars"] + "{mid}.json",
+                        fun = lambda wc: config["scripts"] + "apply_" + mids.loc[wc.mid, "type"] + ".R"
+        output: res = "KANG/output/DS_results_{mid}.rds"
+        log:    config["logs"] + "run_meth_kang-{mid}.Rout"
+        shell:  '''{R} CMD BATCH --no-restore --no-save\
+                "--args sce={input.sce} fun={input.fun} wcs={wildcards}\
+                meth_pars={input.meth_pars} res={output.res}"\
+                {input.script} {log}'''
+
+
+# write session info to .txt file
+rule session_info:
+        priority: 1
+        input:  config["scripts"] + "session_info.R"
+        output: "session_info.txt"
+        log:    config["logs"] + "session_info.Rout"
+        shell:  '''{R} CMD BATCH --no-restore --no-save\
+        "--args txt={output}" {input} {log}'''
+
