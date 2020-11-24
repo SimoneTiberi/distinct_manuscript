@@ -344,15 +344,15 @@ for(i in which(sel)) {
         legend.margin = margin()
       ) +
       labs(title = paste(cluster, "-", gene_main))
-    
+      
     
     AA = egg::ggarrange(
       plots =
         list(
           p_1 + theme(legend.position = "none") + xlab(""),
-          p_2 + theme(legend.position = "none") + xlab("") + ylab("") + labs(title = ""),
+          p_2 + theme(legend.position = "none") + xlab("") + ylab("ECDF") + labs(title = ""),
           p_my_densities + theme(legend.position = "none") + labs(title = ""),
-          p_4 + theme(legend.position = "none") + ylab("") + labs(title = "")
+          p_4 + theme(legend.position = "none") + ylab("ECDF") + labs(title = "")
         ),
       bottom = get_legend(p_4),
       label.args = list(gp = grid::gpar(font = 2,
