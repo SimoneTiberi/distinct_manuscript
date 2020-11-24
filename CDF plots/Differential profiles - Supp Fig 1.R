@@ -97,13 +97,13 @@ DB_cdf = plot_cdfs(x, cluster = "",
 
 library(ggpubr)
 ggarrange(DE_den + xlab("") + labs(title = "DE") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DE_cdf + xlab("") + labs(title = "DE") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
+          DE_cdf+ xlab("") + ylab("ECDF") + labs(title = "DE") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DP_den + xlab("") + labs(title = "DP") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DP_cdf + xlab("") + labs(title = "DP") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
+          DP_cdf + xlab("") + ylab("ECDF") + labs(title = "DP") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DM_den + xlab("") + labs(title = "DM") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DM_cdf + xlab("") + labs(title = "DM") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
+          DM_cdf + xlab("") + ylab("ECDF") + labs(title = "DM") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DB_den + labs(title = "DB") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DB_cdf + labs(title = "DB") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
+          DB_cdf + labs(title = "DB") + ylab("ECDF") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           ncol = 2, nrow = 4,
           legend = "right", common.legend = TRUE)
 
