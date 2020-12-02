@@ -1,6 +1,9 @@
 n_cells = 100
 n_samples = 4
 
+library(magrittr)
+library(ggplot2)
+
 set.seed(61217)
 counts = matrix(nrow = 4, ncol = 2*n_samples*n_cells)
 rownames(counts) = c("DE", "DP", "DM", "DB")

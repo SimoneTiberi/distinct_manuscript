@@ -1,6 +1,8 @@
 n_cells = 10^5
 n_samples = 1
 
+library(magrittr)
+
 set.seed(61217)
 counts = matrix(nrow = 4, ncol = 2*n_samples*n_cells)
 rownames(counts) = c("DE", "DP", "DM", "DB")
@@ -199,7 +201,7 @@ if(TRUE){
 #          font.label = list(size = 13),
 #          ncol = 4, nrow = 2,
 #          legend = "bottom", common.legend = TRUE)
-
+ 
 
 ggarrange(DE_den + xlab("") + labs(title = "DE") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DP_den + xlab("") + ylab("") + labs(title = "DP") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
