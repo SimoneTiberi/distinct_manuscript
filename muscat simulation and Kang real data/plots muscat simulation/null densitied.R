@@ -137,7 +137,7 @@ p <- ggplot(data = RES, aes(x = p_val, y = ..ndensity..,
   scale_alpha_manual(values = c("TRUE" = 0.1, "FALSE" = 0.4)) +
   guides(col = FALSE,
          lty = guide_legend(ncol = 1, order = 2),
-         fill = guide_legend(ncol = 2, order = 1,
+         fill = guide_legend(ncol = 3, order = 1,
                              override.aes = list(alpha = 1, col = NA))) +
   scale_x_continuous("p-value", breaks = seq(0, 1, 0.2), expand = c(0, 0.05)) +
   scale_y_continuous("density", breaks = c(0, 1), expand = c(0, 0.1)) +

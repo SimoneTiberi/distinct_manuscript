@@ -186,23 +186,6 @@ if(TRUE){
 }
 
 
-#ggarrange(DE_den + xlab(""),
-#          DP_den + xlab("") + ylab(""),
-#          DM_den + xlab("") + ylab(""), 
-#          DB_den + xlab("") + ylab(""),
-#          DE_cdf,
-#          DP_cdf + ylab(""),
-#          DM_cdf + ylab(""),
-#          DB_cdf + ylab(""),
-#          labels = c("DE", "DP",
-#                     "DM", "DB",
-#                     "", "",
-#                     "", ""),
-#          font.label = list(size = 13),
-#          ncol = 4, nrow = 2,
-#          legend = "bottom", common.legend = TRUE)
- 
-
 ggarrange(DE_den + xlab("") + labs(title = "DE") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DP_den + xlab("") + ylab("") + labs(title = "DP") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DM_den + xlab("") + ylab("") + labs(title = "DM") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
@@ -219,8 +202,8 @@ if(TRUE){
          plot = last_plot(),
          device = "pdf",
          path = "~/Desktop/distinct project/distinct Article/v1/images/DE_profiles",
-         width = 7.5,
-         height = 5,
+         width = 7,
+         height = 4,
          units = "in",
          dpi = 300,
          limitsize = TRUE)

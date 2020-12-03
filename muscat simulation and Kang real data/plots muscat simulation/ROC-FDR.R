@@ -201,7 +201,7 @@ if(saving){
          plot = AA,
          device = "pdf",
          path = "~/Desktop/distinct project/distinct Article/v1/images/muscat",
-         width = 20,
+         width = 17,
          height = 20,
          units = "in",
          dpi = 300,

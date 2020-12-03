@@ -94,14 +94,14 @@ ggplot() +
         panel.grid.minor = element_blank(), 
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_line(size = 0.2, color = "grey", linetype = 2),
-        aspect.ratio = 1 )
+        aspect.ratio = 0.6 )
 
 ggsave(filename = paste0("Mean-time-(minutes).pdf"),
        plot = last_plot(),
        device = "pdf",
        path = "~/Desktop/distinct project/distinct Article/v1/images/muscat",
-       width = 12,
-       height = 12,
+       width = 10,
+       height = 8,
        units = "in",
        dpi = 300,
        limitsize = TRUE)
