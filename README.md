@@ -13,4 +13,4 @@ The scripts are organized in five folders:
 - `NULL experimental data` contains the code to run the null analyses on the real `T-cells` and `Kang` datasets.
 
 The Snakemakes in `muscat simulation and Kang real data` were obtained by editing the Snakemake from: https://github.com/HelenaLC/muscat-comparison .
-The folder `muscat simulation and Kang real data` also contains a modified version of \textit{muscat} R/Bioconducor package, developed by Almut Luetge at the Robinson lab (University of Zurich), that allows simulating batch effects.
+The folder `muscat simulation and Kang real data` also contains a modified version of muscat R/Bioconductor package, developed by Almut Luetge at the Robinson lab (University of Zurich), that allows simulating batch effects.
