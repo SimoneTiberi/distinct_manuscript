@@ -3,6 +3,9 @@ alias R='R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.0 /usr/local/R/R-4.
 export R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.0 ; /usr/bin/time -v /usr/local/R/R-4.0.0/bin/R -e '.libPaths()'
 R
 
+######################################
+# scDiff comparisons: null simulations
+######################################
 rm(list = ls())
 
 setwd("~/Desktop/distinct project/EXPERIMENTAL data/Bodenmiller (diffcyt)")
@@ -29,6 +32,7 @@ data_null_sims <- list(
   rep2 = Weber_BCR_XL_sim_null_rep2_SE(), 
   rep3 = Weber_BCR_XL_sim_null_rep3_SE()
 )
+
 
 
 ######################
@@ -118,6 +122,7 @@ for (s in 1:length(rep_names)) {
     
   })
   
+  
   # ---------------------------------
   # store data objects (for plotting)
   # ---------------------------------
@@ -129,6 +134,7 @@ for (s in 1:length(rep_names)) {
     d_medians_by_cluster_marker = d_medians_by_cluster_marker, 
     d_medians_by_sample_marker = d_medians_by_sample_marker
   )
+  
   
   # --------------------------------------------
   # test for differential states within clusters
@@ -174,7 +180,7 @@ for (s in 1:length(rep_names)) {
   
   # select DS markers only (and first 2 cols, which are removed in the test):
   sel_cols = colData(d_se)$marker_class == "state"
-
+  
   # invert the row/column structure:
   d_SE_sub <- SummarizedExperiment(
     assays = list(exprs = t(assays(d_se)$exprs[, sel_cols]) ), 
@@ -183,7 +189,7 @@ for (s in 1:length(rep_names)) {
     metadata = list(experiment_info =  metadata(d_se)$experiment_info )
   )
   
-  design_distinct = model.matrix(~metadata(d_SE_sub)$experiment_info$group_id)
+  design_distinct = model.matrix(~metadata(d_SE_sub)$experiment_info$group_id + metadata(d_SE_sub)$experiment_info$patient_id)
   rownames(design_distinct) = metadata(d_SE_sub)$experiment_info$sample_id
   
   library(distinct)
@@ -219,6 +225,20 @@ rm(list =ls())
 
 setwd("~/Desktop/distinct project/EXPERIMENTAL data/Bodenmiller (diffcyt)")
 load("results/null by cluster.RData")
+
+# cluster-level results:
+par(mfrow = c(3,3))
+hist(out_DS_limma[[1]]$p_val)
+hist(out_DS_limma[[2]]$p_val)
+hist(out_DS_limma[[3]]$p_val)
+
+hist(out_DS_LMM[[1]]$p_val)
+hist(out_DS_LMM[[2]]$p_val)
+hist(out_DS_LMM[[3]]$p_val)
+
+hist(res_distinct[[1]]$p_val)
+hist(res_distinct[[2]]$p_val)
+hist(res_distinct[[3]]$p_val)
 
 # Make nice null plot:
 
@@ -289,7 +309,7 @@ p <- ggplot(data = RES, aes(x = p_val, y = ..ndensity..,
   guides(col = FALSE,
          lty = guide_legend(ncol = 1, order = 2),
          fill = guide_legend(ncol = 1, order = 1,
-         override.aes = list(alpha = 1, col = NA))) +
+                             override.aes = list(alpha = 1, col = NA))) +
   scale_x_continuous("p-value", breaks = seq(0, 1, 0.2), expand = c(0, 0.05)) +
   scale_y_continuous("density", breaks = c(0, 1), expand = c(0, 0.1)) +
   .prettify("bw") + theme(aspect.ratio = 0.5,
@@ -297,19 +317,21 @@ p <- ggplot(data = RES, aes(x = p_val, y = ..ndensity..,
                           panel.spacing = unit(1, "mm"),
                           panel.border = element_rect(color = "grey"),
                           strip.text = element_text(size = 5),
-                          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = rel(1.5)),
-                          axis.text.y=element_text(size=rel(1.5)),
-                          axis.title.y = element_text(size=rel(1.5)),
-                          axis.title.x = element_text(size=rel(1.5)),
-                          axis.title.x.top = element_text(size=rel(1.5)),
-                          legend.title=element_text(size=rel(1.5)),
-                          legend.text=element_text(size=rel(1.5)),
+                          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = rel(2)),
+                          axis.text.y=element_text(size=rel(2)),
+                          axis.title.y = element_text(size=rel(2)),
+                          axis.title.x = element_text(size=rel(2)),
+                          # axis.text.x.top = element_text(size=rel(2)),
+                          # axis.title.y.top = element_text(size=rel(2)),
+                          axis.title.x.top = element_text(size=rel(2)),
+                          legend.title=element_text(size=rel(2)),
+                          legend.text=element_text(size=rel(2)),
                           legend.key.width=unit(0.5, "cm"),
                           #legend.box.just = "top",
                           legend.position="bottom",
                           legend.direction = "horizontal",
                           legend.box="horizontal",
-                          strip.text.x = element_text(size = rel(1.5)),
+                          strip.text.x = element_text(size = rel(2)),
                           legend.margin=margin()) +
   scale_colour_manual(values = colours) +
   scale_fill_manual(values = colours)
@@ -319,9 +341,9 @@ ggsave(filename = paste0("diffcyt-null-by-cluster.pdf"),
        plot = last_plot(),
        device = "pdf",
        path = "~/Desktop/distinct project/distinct Article/v1/images/diffcyt",
-       width = 8,
-       height = 3,
+       width = 9,
+       height = 3.5,
        units = "in",
        dpi = 300,
        limitsize = TRUE)
-# Figure 1c
+

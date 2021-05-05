@@ -3,17 +3,15 @@ config <- yaml::read_yaml("config.yaml")
 de10 <- c(0.9, 0, 0.1, 0, 0, 0)
 
 sim_pars <- list(
-    # null simulations
-   nill200 = list(nr = 5, p_dd = diag(6)[1, ], seed = 1, lfc = 1, nc = 18 * 200),
-    # pure simulations
    de200 = list(nr = 5, p_dd = c(0.9, 0, 0.1, 0, 0, 0), seed = 2, lfc = 1, nc = 18 * 200),
    dp200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0.1, 0, 0), seed = 3, lfc = 1.5, nc = 18 * 200),
    dm200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0.1, 0), seed = 4, lfc = 1.5, nc = 18 * 200),
-   db200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0.1), seed = 5, lfc = 3, nc = 18 * 200)
+   db200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0.1), seed = 5, lfc = 3, nc = 18 * 200),
+   dv200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0), seed = 6, lfc = 3, nc = 18 * 200, p_dv = 0.1)
 )
 
 def_pars <- list(nr = 1, nk = 3, ns = 3, 
-                 lfc = 2,
+                 lfc = 2, p_dv = 0,
     ng = 4e3, nc = function(nk, ns) 4*nk*ns*200, 
     p_dd = de10, probs = NULL, seed = 1)
 

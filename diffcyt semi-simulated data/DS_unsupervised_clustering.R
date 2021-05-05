@@ -1,6 +1,5 @@
 #################################################
 # scDiff comparisons: 'less distinct' simulations
-# Lukas Weber, Mar 2020
 #################################################
 rm(list = ls())
 
@@ -196,7 +195,7 @@ for (s in 1:length(rep_names)) {
     metadata = list(experiment_info =  metadata(d_se)$experiment_info )
   )
   
-  design_distinct = model.matrix(~metadata(d_SE_sub)$experiment_info$group_id)
+  design_distinct = model.matrix(~metadata(d_SE_sub)$experiment_info$group_id + metadata(d_SE_sub)$experiment_info$patient_id)
   rownames(design_distinct) = metadata(d_SE_sub)$experiment_info$sample_id
   
   library(distinct)
@@ -314,7 +313,7 @@ dim(res_distinct[[1]]);
 rd = rowData(data_FC[[1]])
 table(rd$B_cell, rd$spikein, rd$group_id)
 
-# save.image("DS/results/DS_by_cluster_CellLevel.RData")
+# save.image("results/DS_by_cluster_CellLevel.RData")
 
 ##################################################################################################
 # Plots:
@@ -333,8 +332,8 @@ colours = c(
   "white")
 
 
-gg_roc = gg_fdr = DF_list = list()
-library(iCOBRA)
+RES_keep = gg_roc = gg_fdr = DF_list = list()
+library(iCOBRA);
 # make ROC and FDR plots:
 for (s in 1:length(rep_names)) {
   res_limma = out_DS_byCell_limma[[s]][ order(out_DS_byCell_limma[[s]]$B_cell),]
@@ -355,12 +354,15 @@ for (s in 1:length(rep_names)) {
   
   truth_cobra = data.frame(status = ifelse(res_limma$B_cell,1,0) )
   
+  RES_keep[[s]] = data.frame(truth_cobra, p_icobra)
+  
   cobra = COBRAData(pval = p_icobra,
                     padj = padj_icobra,
                     truth = truth_cobra,
                     object_to_extend = NULL)
   
-  cobraperf <- calculate_performance(cobra, binary_truth = "status")
+  cobraperf <- calculate_performance(cobra, binary_truth = "status",
+                                     thrs = c(0.01, 0.05, 0.1, 0.2))
   
   cobraplot <- prepare_data_for_plot(cobraperf, colorscheme = colours,
                                      facetted = TRUE, incloverall = FALSE,
@@ -391,7 +393,7 @@ for (s in 1:length(rep_names)) {
           axis.text.x = element_text(angle = 45, hjust=0.5) ) +
     geom_point(data = cobraplot@fdrtpr, 
                size = 4, alpha = 0.1, 
-               colour = rep(colours[-4], 3))
+               colour = rep(colours[-4], 4))
   
   # make FDR table:
   DF = data.frame(method = cobraplot@fdrtpr$method, 
@@ -407,42 +409,10 @@ DF = do.call(cbind, DF_list)
 library(xtable)
 xtable( DF[,-c(5,6,9,10)], digits = 2, align = "|ll|r|rr|rr|rr|")
 
-gg_tmp = gg_fdr[[1]] + theme(legend.text=element_text(size=rel(1.5)),
+gg_tmp = gg_fdr[[1]] + theme(legend.text=element_text(size=rel(2)),
                              legend.key.width=unit(1.5, "cm"),
                              legend.title=element_text(size=rel(1.5)),
                              legend.box="horizontal", legend.position = "bottom")
-
-# FDR AND ROC VERTICAL:
-library(ggpubr)
-ggarrange(gg_roc[[1]] + xlab(""),
-          gg_tmp + xlab("") + ylab(""),
-          gg_roc[[2]] + xlab(""),
-          gg_fdr[[2]] + xlab("") + ylab(""),
-          gg_roc[[3]],
-          gg_fdr[[3]] + ylab(""),
-          legend.grob = get_legend(gg_tmp),
-          labels = c( "",
-                      "main",
-                      "",
-                      "less 50", 
-                      "", 
-                      "less 75"),
-          label.x = -0.1,
-          font.label = list(size = 20),
-          ncol = 2, nrow = 3,
-          legend = "bottom", common.legend = TRUE)
-# DS_SingleCellLevel.pdf
-# 16 * 16
-
-ggsave(filename = "diffcyt_SingleCell_ROC_FDR_vertical.pdf",
-       plot = last_plot(),
-       device = "pdf",
-       path = "~/Desktop/distinct project/distinct Article/v1/images/diffcyt",
-       width = 12,
-       height = 16,
-       units = "in",
-       dpi = 300,
-       limitsize = TRUE)
 
 # FDR HORIZONTAL:
 AA = egg::ggarrange( plots = 
@@ -457,7 +427,6 @@ AA = egg::ggarrange( plots =
                                     plot.title = element_text(hjust = 0.5, face = "bold", size=20))),
                      bottom = ggpubr::get_legend(gg_tmp),
                      ncol = 3, nrow = 1)
-
 
 ggsave(filename = "diffcyt_SingleCell_FDR.pdf",
        plot = AA,
@@ -482,7 +451,6 @@ AA = egg::ggarrange( plots =
                                     plot.title = element_text(hjust = 0.5, face = "bold", size=20))),
                      bottom = ggpubr::get_legend(gg_tmp),
                      ncol = 3, nrow = 1)
-
 
 ggsave(filename = "diffcyt_SingleCell_ROC.pdf",
        plot = AA,

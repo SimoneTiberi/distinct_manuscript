@@ -12,12 +12,24 @@ sce <- readRDS(args$sce)
 sim_pars <- fromJSON(args$sim_pars)
 set.seed(sim_pars$seed + as.numeric(wcs$i))
 
-sim <- simData(sce, 
+if(sim_pars$p_dv > 0){
+    library(purrr)
+    source("scripts/sim_DV.R")
+
+    sim <- simData_DV(sce,
+    paired = TRUE, lfc = as.numeric(sim_pars$lfc),
+    ng = nrow(sce), nc = sim_pars$nc,
+    force = TRUE,
+    ns = sim_pars$ns, nk = sim_pars$nk,
+    p_dd = sim_pars$p_dd, probs = sim_pars$probs, p_DV = sim_pars$p_dv)
+}else{
+    sim <- simData(sce, 
     paired = TRUE, lfc = as.numeric(sim_pars$lfc),
     ng = nrow(sce), nc = sim_pars$nc,
     force = TRUE,
     ns = sim_pars$ns, nk = sim_pars$nk,
     p_dd = sim_pars$p_dd, probs = sim_pars$probs)
+}
 
 sim <- sim[rowSums(counts(sim) > 0) >= 10, ]
 sim <- sim[sample(nrow(sim), min(nrow(sim), sim_pars$ng)), ]

@@ -1,5 +1,5 @@
 # this determines which types of methods to include
-names(ids) <- ids <- c("pb", "distinct", "mm")
+names(ids) <- ids <- c("pb", "distinct", "mm", "scdd", "permscdd")
 
 # aggregation-based ------------------------------------------------------------
 pb <- dplyr::bind_rows(
@@ -40,6 +40,18 @@ mm <- data.frame(
     ddf = "Satterthwaite")
 mm$id <- with(mm, paste0("MM-", method))
 
+# scDD -------------------------------------------------------------------------
+scdd <- data.frame(
+    stringsAsFactors = FALSE,
+    assay = c("logcounts", "vstresiduals"))
+scdd$id <- with(scdd, sprintf("scDD.%s", assay))
+
+# permscdd -------------------------------------------------------------------------
+permscdd <- data.frame(
+    stringsAsFactors = FALSE,
+    assay = c("logcounts", "vstresiduals"))
+permscdd$id <- with(permscdd, sprintf("permscdd.%s", assay))
+
 # write method IDs to .csv -----------------------------------------------------
 for (id in ids) {
     ps <- get(id)
@@ -73,3 +85,4 @@ for (id in mids) {
         write(jsonlite::toJSON(new), fns[id])
     }
 }
+

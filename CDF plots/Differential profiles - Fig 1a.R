@@ -4,8 +4,8 @@ n_samples = 1
 library(magrittr)
 
 set.seed(61217)
-counts = matrix(nrow = 4, ncol = 2*n_samples*n_cells)
-rownames(counts) = c("DE", "DP", "DM", "DB")
+counts = matrix(nrow = 5, ncol = 2*n_samples*n_cells)
+rownames(counts) = c("DE", "DP", "DM", "DB", "DV")
 
 for(i in seq_len(n_samples)){
   # DE:
@@ -23,6 +23,10 @@ for(i in seq_len(n_samples)){
   # DB:
   counts[4, seq( (i-1) * n_cells + 1, i*n_cells) ] =rnorm(n_cells, mean = 10)
   counts[4, n_samples * n_cells + seq( (i-1) * n_cells + 1, i*n_cells) ] = c(rnorm(n_cells/2, mean = 8), rnorm(n_cells/2, mean = 12))
+
+  # DV:
+  counts[5, seq( (i-1) * n_cells + 1, i*n_cells) ] = rnorm(n_cells, mean = 10, sd = 1)
+  counts[5, n_samples * n_cells + seq( (i-1) * n_cells + 1, i*n_cells) ] = rnorm(n_cells, mean = 10, sd = 2)
 }
 
 colData = list(sample_id = rep( seq_len(2*n_samples), each = n_cells ),
@@ -99,62 +103,45 @@ DB_cdf = MY_plot_cdf(x, cluster = "",
   theme(axis.text.x = element_blank(),
         axis.text.y = element_blank())
 
+# DV
+DV_den = MY_plot_densities(x, cluster = "",
+                           gene = "DV",
+                           name_assays_expression = "expression", adjust = 2, size = 1.5) +
+  labs(title = "") +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank())
 
-library(ggpubr)
-ggarrange(DE_cdf,
-          DP_cdf, 
-          DM_cdf, 
-          DB_cdf,
-          labels = c("DE",
-                     "DP",
-                     "DM",
-                     "DB"),
-          ncol = 2, nrow = 2,
-          legend = "bottom", common.legend = TRUE)
+DV_cdf = MY_plot_cdf(x, cluster = "",
+                     gene = "DV",
+                     name_assays_expression = "expression", size = 1.5) +
+  labs(title = "") +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank())
 
-library(ggpubr)
-ggarrange(DE_den,
-          DP_den, 
-          DM_den, 
-          DB_den, 
-          labels = c("DE",
-                     "DP",
-                     "DM",
-                     "DB"),
-          ncol = 2, nrow = 2,
-          legend = "bottom", common.legend = TRUE)
-
-if(TRUE){
-  ggsave(filename = "DE_profiles.pdf",
-         plot = last_plot(),
-         device = "pdf",
-         path = "~/Desktop/distinct project/distinct Article/v1/images/DE_profiles",
-         width = 6,
-         height = 6,
-         units = "in",
-         dpi = 300,
-         limitsize = TRUE)
-}
 
 library(ggpubr)
 ggarrange(DE_den,
           DP_den, 
           DM_den, 
           DB_den, 
+          DV_den, 
           DE_cdf,
           DP_cdf, 
           DM_cdf, 
           DB_cdf,
+          DV_cdf, 
           labels = c("DE",
                      "DP",
                      "DM",
                      "DB",
+                     "DV",
+                     "",
                      "",
                      "",
                      "",
                      ""),
           legend.grob = get_legend(DE_cdf),
-          ncol = 4, nrow = 2,
+          ncol = 5, nrow = 2,
           legend = "bottom", common.legend = TRUE)
 
 
@@ -165,12 +152,14 @@ ggarrange(DE_den, DE_cdf,
           DP_den, DP_cdf, 
           DM_den, DM_cdf, 
           DB_den, DB_cdf,
+          DV_den, DV_cdf,
           labels = c("DE","",
                      "DP","",
                      "DM","",
-                     "DB",""),
+                     "DB","",
+                     "DV",""),
           legend.grob = get_legend(DE_cdf),
-          ncol = 2, nrow = 4,
+          ncol = 2, nrow = 5,
           legend = "bottom", common.legend = TRUE)
 
 if(TRUE){
@@ -184,29 +173,4 @@ if(TRUE){
          dpi = 300,
          limitsize = TRUE)
 }
-
-
-ggarrange(DE_den + xlab("") + labs(title = "DE") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DP_den + xlab("") + ylab("") + labs(title = "DP") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DM_den + xlab("") + ylab("") + labs(title = "DM") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DB_den + xlab("") + ylab("") + labs(title = "DB") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          DE_cdf,
-          DP_cdf + ylab(""),
-          DM_cdf + ylab(""),
-          DB_cdf + ylab(""),
-          ncol = 4, nrow = 2,
-          legend = "bottom", common.legend = TRUE)
-
-if(TRUE){
-  ggsave(filename = "DE_density_cdf_horizontal.pdf",
-         plot = last_plot(),
-         device = "pdf",
-         path = "~/Desktop/distinct project/distinct Article/v1/images/DE_profiles",
-         width = 7,
-         height = 4,
-         units = "in",
-         dpi = 300,
-         limitsize = TRUE)
-}
-
 

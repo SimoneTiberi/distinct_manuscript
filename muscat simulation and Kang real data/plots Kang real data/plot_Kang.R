@@ -241,7 +241,7 @@ for(i in which(sel)) {
         legend.margin = margin()
       ) +
       labs(title = paste(cluster, "-", gene_main))
-    
+
     p_3 <- plot_densities(
       x = sce,
       gene = gene,
@@ -375,6 +375,9 @@ for(i in which(sel)) {
       )
     }
     
+    p_1 <- p_1 + labs(title = paste(gene_main)) +
+      theme( plot.title = element_text(size = rel(2)) )
+    
     PP[[ which(TOP_TOP == paste(cluster, gene)) ]] = list(p_1, p_2, p_3, p_4, p_my_densities)
   }
 }
@@ -382,6 +385,23 @@ for(i in which(sel)) {
 
 for(i in seq_along(TOP_TOP)){
   PP[[i]][[5]] = PP[[i]][[5]] + theme(aspect.ratio = 0.8, # or 1 for 8 plots
+                                      panel.grid = element_blank(),
+                                      panel.spacing = unit(1, "mm"),
+                                      panel.border = element_rect(color = "grey"),
+                                      strip.text = element_text(size = 6),
+                                      axis.text = element_text(size = rel(1.5)),
+                                      axis.title = element_text(size=rel(1.5)),
+                                      plot.title = element_text(size=rel(1.5)),
+                                      legend.title=element_text(size=rel(1.5)),
+                                      legend.text=element_text(size=rel(1.5)),
+                                      legend.key.width=unit(1, "cm"),
+                                      legend.position="bottom",
+                                      legend.direction = "horizontal",
+                                      legend.box="horizontal",
+                                      strip.text.x = element_text(size = rel(1.5)),
+                                      legend.margin=margin())
+  
+  PP[[i]][[1]] = PP[[i]][[1]] + theme(aspect.ratio = 0.8, # or 1 for 8 plots
                                       panel.grid = element_blank(),
                                       panel.spacing = unit(1, "mm"),
                                       panel.border = element_rect(color = "grey"),
@@ -418,6 +438,34 @@ AA
 
 if(saving){
   ggsave(filename = "9_in_1_horizontal.pdf",
+         plot = AA,
+         device = "pdf",
+         path = "~/Desktop/distinct project/distinct Article/v1/images/Kang/",
+         width = 12,
+         height = 12,
+         units = "in",
+         dpi = 300,
+         limitsize = TRUE)
+}
+
+
+AA = egg::ggarrange( plots = 
+                       list(
+                         PP[[1]][[1]] + xlab("") + theme(legend.position = "none"),
+                         PP[[2]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[3]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[4]][[1]] + xlab("") + theme(legend.position = "none"),
+                         PP[[5]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[6]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[7]][[1]] + theme(legend.position = "none"),
+                         PP[[8]][[1]] + ylab("") + theme(legend.position = "none"),
+                         PP[[9]][[1]] + ylab("") + theme(legend.position = "none")),
+                     bottom = get_legend( PP[[1]][[5]] ),
+                     ncol = 3, nrow = 3)
+AA
+
+if(saving){
+  ggsave(filename = "9_in_1_horizontal_INDIVIDUAL.pdf",
          plot = AA,
          device = "pdf",
          path = "~/Desktop/distinct project/distinct Article/v1/images/Kang/",

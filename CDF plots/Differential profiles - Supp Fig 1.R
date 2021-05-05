@@ -5,8 +5,8 @@ library(magrittr)
 library(ggplot2)
 
 set.seed(61217)
-counts = matrix(nrow = 4, ncol = 2*n_samples*n_cells)
-rownames(counts) = c("DE", "DP", "DM", "DB")
+counts = matrix(nrow = 5, ncol = 2*n_samples*n_cells)
+rownames(counts) = c("DE", "DP", "DM", "DB", "DV")
 
 for(i in seq_len(n_samples)){
   # DE:
@@ -24,6 +24,10 @@ for(i in seq_len(n_samples)){
   # DB:
   counts[4, seq( (i-1) * n_cells + 1, i*n_cells) ] =rnorm(n_cells, mean = 10)
   counts[4, n_samples * n_cells + seq( (i-1) * n_cells + 1, i*n_cells) ] = c(rnorm(n_cells/2, mean = 8), rnorm(n_cells/2, mean = 12))
+  
+  # DV:
+  counts[5, seq( (i-1) * n_cells + 1, i*n_cells) ] = rnorm(n_cells, mean = 10, sd = 1)
+  counts[5, n_samples * n_cells + seq( (i-1) * n_cells + 1, i*n_cells) ] = rnorm(n_cells, mean = 10, sd = 2)
 }
 
 colData = list(sample_id = rep( seq_len(2*n_samples), each = n_cells ),
@@ -82,21 +86,16 @@ DB_cdf = plot_cdfs(x, cluster = "",
                    name_assays_expression = "expression") +
   labs(title = "")
 
-#library(ggpubr)
-#ggarrange(DE_den + xlab(""),
-#          DE_cdf + xlab(""),
-#          DP_den + xlab(""),
-#          DP_cdf + xlab(""),
-#          DM_den + xlab(""),
-#          DM_cdf + xlab(""),
-#          DB_den,
-#          DB_cdf, 
-#          labels = c("DE", "",
-#                     "DP", "",
-#                     "DM", "",
-#                     "DB", ""),
-#          ncol = 2, nrow = 4,
-#          legend = "right", common.legend = TRUE)
+# DV
+DV_den = plot_densities(x, cluster = "",
+                        gene = "DV",
+                        name_assays_expression = "expression") +
+  labs(title = "")
+
+DV_cdf = plot_cdfs(x, cluster = "",
+                   gene = "DV",
+                   name_assays_expression = "expression") +
+  labs(title = "")
 
 library(ggpubr)
 ggarrange(DE_den + xlab("") + labs(title = "DE") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
@@ -107,7 +106,9 @@ ggarrange(DE_den + xlab("") + labs(title = "DE") + theme(plot.title = element_te
           DM_cdf + xlab("") + ylab("ECDF") + labs(title = "DM") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DB_den + labs(title = "DB") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
           DB_cdf + labs(title = "DB") + ylab("ECDF") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
-          ncol = 2, nrow = 4,
+          DV_den + labs(title = "DV") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
+          DV_cdf + labs(title = "DV") + ylab("ECDF") + theme(plot.title = element_text(hjust = 0.5, face = "bold")),
+          ncol = 2, nrow = 5,
           legend = "right", common.legend = TRUE)
 
 if(TRUE){

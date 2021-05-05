@@ -24,13 +24,16 @@ sim_pars <- list(
    de50  = list(nr = 5, p_dd = c(0.9, 0, 0.1, 0, 0, 0), seed = 2, lfc = 1, nc = 18 * 50),
    dp50  = list(nr = 5, p_dd = c(0.9, 0, 0, 0.1, 0, 0), seed = 3, lfc = 1.5, nc = 18 * 50),
    dm50  = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0.1, 0), seed = 4, lfc = 1.5, nc = 18 * 50),
-   db50  = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0.1), seed = 5, lfc = 3, nc = 18 * 50)
+   db50  = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0.1), seed = 5, lfc = 3, nc = 18 * 50),
+   dv400 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0), seed = 6, lfc = 3, nc = 18 * 400, p_dv = 0.1),
+   dv200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0), seed = 6, lfc = 3, nc = 18 * 200, p_dv = 0.1),
+   dv100 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0), seed = 6, lfc = 3, nc = 18 * 100, p_dv = 0.1),
+   dv50 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0, 0), seed = 6, lfc = 3, nc = 18 * 50, p_dv = 0.1)
 )
 
 def_pars <- list(nr = 1, nk = 3, ns = 3, 
-                 lfc = 2,
-    ng = 4e3, nc = function(nk, ns) 4*nk*ns*200, 
-    p_dd = de10, probs = NULL, seed = 1)
+                 lfc = 2, ng = 4e3, nc = function(nk, ns) 4*nk*ns*200, 
+		p_dd = de10, probs = NULL, seed = 1, p_dv = 0)
 
 sim_pars <- lapply(sim_pars, function(u) {
     v <- !names(def_pars) %in% names(u)

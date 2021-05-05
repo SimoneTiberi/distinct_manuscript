@@ -1,0 +1,13 @@
+{
+    "path" : "~/Desktop/distinct project/EXPERIMENTAL data/T cells from 12 Colorectal cancer patients - Scientific Data 2019",
+    "sortOrder" : [
+        {
+            "ascending" : false,
+            "columnIndex" : 4
+        },
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

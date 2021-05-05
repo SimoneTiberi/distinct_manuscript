@@ -106,14 +106,17 @@ dim(p_vals_filt)
 p_vals_filt$replicate = as.factor(p_vals_filt$replicate)
 
 # match colours to methods:
-methods = unique(p_vals_filt$method)
+methods = sort(unique(p_vals_filt$method))
 
 library(RColorBrewer);
 all_colours = c(
   brewer.pal(4, "Reds")[4:2],    # distinct cpm, logcounts, vstresid
-  brewer.pal(3, "BuPu")[3:2],    # edgeR 2 methods
-  brewer.pal(4, "Greens")[4:2]   # limma-trend + # limma-voom 2 methods
+  brewer.pal(3, "Blues")[3:2],    # edgeR 2 methods
+  brewer.pal(4, "Greens")[4:2],   # limma-trend 1 method + # limma-voom 2 methods
+  brewer.pal(4, "Greys")[4:2],   # MM 3 methods
+  brewer.pal(5, "RdPu")[5:2]   # scDD 3 methods
 )
+# Purples Oranges Greys
 
 all_methods = c(
   "distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
@@ -123,15 +126,20 @@ all_methods = c(
   "edgeR.cpm",
   "limma-voom.counts",
   "limma-trend.log2-cpm",
-  "limma-trend.vstresiduals"
+  "limma-trend.vstresiduals",
+  "MM-dream2",
+  "MM-nbinom",
+  "MM-vst",
+  "scDD.logcounts",
+  "scDD.vstresiduals",
+  "permscdd.logcounts",
+  "permscdd.vstresiduals"
 )
+all_methods = sort(all_methods)
 
-
-# all_methods = sort(all_methods)
 match = match( methods,  all_methods )
-
+head(sort(methods)); head(all_methods[match])
 colours = c(all_colours[match])
-
 
 p <- ggplot(data = p_vals_filt, aes(x = p_val, y = ..ndensity.., 
                                     col = method, fill = method, lty = replicate),
