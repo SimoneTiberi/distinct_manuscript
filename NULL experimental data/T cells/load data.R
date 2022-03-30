@@ -2,6 +2,8 @@
 # under study accession id EGAS00001002791 and dataset accession id EGAD0000100391031, 
 # which are available in FASTQ file format upon request and approval
 
+setwd("~/Desktop/distinct project/EXPERIMENTAL data/T cells from 12 Colorectal cancer patients - Scientific Data 2019")
+
 rm(list =ls())
 x = data.table::fread("data/GSE108989_CRC.TCell.S11138.count.txt.gz", header = TRUE)
 class(x); dim(x)
@@ -52,22 +54,51 @@ table(samples)
 table(major_cluster)
 table(sample_type)
 
-# save(counts, CPM, samples, genes, major_cluster, sample_type, file = "results/data.RData")
-
-CPM <- calculateCPM(counts)
-
-# PCA/tSNE/UMAP plots based on CPMs:
+# sce:
 library(SingleCellExperiment)
-sce <- SingleCellExperiment(assays = list(counts = counts,
-                                        cpms = CPM),
+sce <- SingleCellExperiment(assays = list(counts = as.matrix(counts) ),
                           colData = list(sample_id = factor(samples),
                                          major_cluster = factor(major_cluster),
                                          sample_type = factor(sample_type)),
                           metadata = list(experiment_info = data.frame( sample_id = unique(samples)),
                                           n_cells = table(samples)))
 
+# remove genes with < 10 non-zero cells (across ALL clusters).
+sel_genes = rowSums( assays(sce)$counts>0 ) >= 20
+mean(sel_genes)
+sce = sce[ sel_genes , ]
+
+# normalize data:
 library(scater)
 sce = computeLibraryFactors(sce)
-sce = logNormCounts(sce)
+sce = scater::logNormCounts(sce)
+
+assays(sce)$cpm <- calculateCPM(sce)
+
+# add Linnorm normalized data:
+library(Linnorm)
+Linnorm_data <- Linnorm.Norm( assays(sce)$counts )
+assays(sce)$linnorm = Linnorm_data
+
+# crashing:
+#vstresiduals = sctransform::vst( assays(sce)$counts, show_progress = FALSE)$y
+#assays(sce)$vstresiduals = vstresiduals
+vstresiduals = as.matrix(DESeq2::vst( as.matrix(assays(sce)$counts) ))
+rownames(vstresiduals) = seq_len(nrow(vstresiduals))
+assays(sce, withDimnames=FALSE)$vstresiduals = vstresiduals
+
+# basics:
+library(BASiCS)
+
+sce$BatchInfo = sce$sample_id
+
+Chain <- BASiCS_MCMC(sce, WithSpikes = FALSE, Regression = FALSE,
+                     N = 10^3,
+                     Thin = 10,
+                     Burn = 500)
+
+assays(sce, withDimnames=FALSE)$basics <- BASiCS_DenoisedCounts(sce, Chain)
 
 save(sce, file = "results/sce.RData")
+
+sce

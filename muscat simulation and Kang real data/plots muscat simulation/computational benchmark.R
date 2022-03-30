@@ -1,58 +1,19 @@
 rm(list = ls())
 setwd("~/Desktop/distinct project/SIMULATED data/FULL muscat pipeline")
 
-saving = TRUE
+library(ggplot2)
+saving = FALSE
 pairing = "paired" 
 
 # NEW RESULTS:
 res_names = list.files(paste0("results/results_7Samples"), full.names =TRUE)
 file.exists(res_names)
 
-methods = c(
-  ",distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
-  ",distinct.logcounts", # distinct.logcounts25FALSE, or distinct.logcounts25FALSE1000,
-  ",distinct.vstresiduals", # distinct.vstresiduals25FALSE, or distinct.vstresiduals25FALSE1000,
-  ",edgeR.sum.counts",
-  ",edgeR.sum.scalecpm",
-  ",limma-trend.mean.logcounts",
-  ",limma-trend.mean.vstresiduals",
-  ",limma-voom.sum.counts",
-  ",MM-dream2",
-  ",MM-nbinom",
-  ",MM-vst",
-  ",scDD.logcounts",
-  ",scDD.vstresiduals",
-  ",permscdd.logcounts",
-  ",permscdd.vstresiduals"
-)
+source("~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/all_methods.R")
+methods = all_methods
+methods[1:5] = paste0(methods[1:5], "3")
 
-# methods names:
-methods_names = c(
-  "distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
-  "distinct.log2-cpm", # distinct.logcounts25FALSE, or distinct.logcounts25FALSE1000,
-  "distinct.vstresiduals", # distinct.vstresiduals25FALSE, or distinct.vstresiduals25FALSE1000,
-  "edgeR.counts",
-  "edgeR.cpm",
-  "limma-trend.log2-cpm",
-  "limma-trend.vstresiduals",
-  "limma-voom.counts",
-  "MM-dream2",
-  "MM-nbinom",
-  "MM-vstresiduals",
-  "scDD-KS.log2-cpm",
-  "scDD-KS.vstresiduals",
-  "scDD-perm.log2-cpm",
-  "scDD-perm.vstresiduals"
-)
-
-library(RColorBrewer);
-all_colours = c(
-  brewer.pal(4, "Reds")[4:2],    # distinct cpm, logcounts, vstresid
-  brewer.pal(3, "Blues")[3:2],    # edgeR 2 methods
-  brewer.pal(4, "Greens")[4:2],   # limma-trend 1 method + # limma-voom 2 methods
-  brewer.pal(4, "Greys")[4:2],   # MM 3 methods
-  brewer.pal(5, "RdPu")[5:2]   # scDD 3 methods
-)
+methods_names = methods_names 
 
 # filter results for n_cells:
 n_cells = 200
@@ -122,15 +83,13 @@ ggplot() +
         legend.position = "none") +
   scale_fill_manual(values=gg_data$cols)
 
+ggsave(filename = paste0("Mean-time-(minutes).pdf"),
+       plot = last_plot(),
+       device = "pdf",
+       path = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/plots muscat simulation - NEW normalization/Plots/",
+       width = 10,
+       height = 10,
+       units = "in",
+       dpi = 300,
+       limitsize = TRUE)
 
-if(saving){
-  ggsave(filename = paste0("Mean-time-(minutes).pdf"),
-         plot = last_plot(),
-         device = "pdf",
-         path = "~/Desktop/distinct project/distinct Article/v1/images/muscat",
-         width = 10,
-         height = 10,
-         units = "in",
-         dpi = 300,
-         limitsize = TRUE)
-}

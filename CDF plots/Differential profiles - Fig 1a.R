@@ -144,6 +144,17 @@ ggarrange(DE_den,
           ncol = 5, nrow = 2,
           legend = "bottom", common.legend = TRUE)
 
+if(TRUE){
+  ggsave(filename = "DE_density_cdf_horizontal.pdf",
+         plot = last_plot(),
+         device = "pdf",
+         path = "~/Desktop/distinct project/distinct Article/v1/images/DE_profiles",
+         width = 8,
+         height = 6,
+         units = "in",
+         dpi = 300,
+         limitsize = TRUE)
+}
 
 
 

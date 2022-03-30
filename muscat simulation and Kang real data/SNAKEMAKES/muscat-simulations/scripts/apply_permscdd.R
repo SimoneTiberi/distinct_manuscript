@@ -10,7 +10,9 @@ apply_permscdd <- function(sce, pars, ds_only = TRUE) {
     t <- system.time({
         if (ds_only) {
             normcounts(sce) <- switch(pars$assay,
-		cpm = assay(sce, "cpm"),
+                basics = assay(sce, "basics"),
+                linnorm = assay(sce, "linnorm"),
+                cpm = assay(sce, "cpm"),
                 logcounts = 2^logcounts(sce)-1,
                 vstresiduals = exp(assay(sce, "vstresiduals")))
         } else {
@@ -19,11 +21,11 @@ apply_permscdd <- function(sce, pars, ds_only = TRUE) {
                 vstresiduals = exp(vst(counts(sce), show_progress = FALSE)$y))
         }
 
-	# For computational reasons, only run for the 200 cell per cluster-sample combination
-	if( ncol(sce) == 18 * 200 ){
+	# only run for the 200 cell per cluster-sample combination:
+	cond = ncol(sce) == 18 * 200
+	if( cond ){
           res <- tryCatch(run_permscdd(sce), error = function(e) e)
 	}else{
-	  # add NA results (i.e., do NOT run) for other sample sizes.
 		genes = rownames(sce)
 		n_genes = length(genes)
 

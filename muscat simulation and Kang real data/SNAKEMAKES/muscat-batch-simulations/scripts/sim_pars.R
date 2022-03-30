@@ -3,6 +3,9 @@ config <- yaml::read_yaml("config.yaml")
 de10 <- c(0.9, 0, 0.1, 0, 0, 0)
 
 sim_pars <- list(
+    # null simulations
+   nill200 = list(nr = 5, p_dd = diag(6)[1, ], seed = 1, lfc = 1, nc = 18 * 200),
+    # pure simulations
    de200 = list(nr = 5, p_dd = c(0.9, 0, 0.1, 0, 0, 0), seed = 2, lfc = 1, nc = 18 * 200),
    dp200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0.1, 0, 0), seed = 3, lfc = 1.5, nc = 18 * 200),
    dm200 = list(nr = 5, p_dd = c(0.9, 0, 0, 0, 0.1, 0), seed = 4, lfc = 1.5, nc = 18 * 200),

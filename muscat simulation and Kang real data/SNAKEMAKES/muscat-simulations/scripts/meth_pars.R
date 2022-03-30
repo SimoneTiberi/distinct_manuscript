@@ -1,35 +1,40 @@
 # this determines which types of methods to include
-names(ids) <- ids <- c("pb", "distinct", "mm", "scdd", "permscdd")
+names(ids) <- ids <- c("pb", "distinct", "mm", "scdd", "permscdd") 
 
-# aggregation-based ------------------------------------------------------------
+# UPDATE PB as:
 pb <- dplyr::bind_rows(
-    expand.grid(
-        stringsAsFactors = FALSE,
-        assay = "counts", fun = "sum", scale = FALSE, 
-        method = c("edgeR", "limma-voom"),
-        treat = c(FALSE)
-    ),
-    expand.grid(
-        stringsAsFactors = FALSE, scale = FALSE,
-        assay = c("logcounts", "vstresiduals"),
-        fun = "mean", method = "limma-trend"
-    ),
-    data.frame(
-        stringsAsFactors = FALSE, scale = TRUE,
-        assay = "cpm", fun = "sum", method = "edgeR",
-        treat = c(FALSE)
-    )    
+  expand.grid(
+    stringsAsFactors = FALSE,
+    assay =  "counts", fun = "sum", scale = FALSE,
+    method = c("edgeR", "limma-voom"),
+    treat = c(FALSE)
+  ),
+  expand.grid(
+    stringsAsFactors = FALSE, scale = FALSE,
+    assay = c("logcounts", "vstresiduals", "linnorm", "basics"),
+    fun = "mean", method = c("limma-trend")
+  ),
+  expand.grid(
+    stringsAsFactors = FALSE, scale = FALSE,
+    assay = c("linnorm", "basics"),
+    fun = "mean", method = c("edgeR")
+  ),
+  data.frame(
+    stringsAsFactors = FALSE, scale = TRUE,
+    assay = "cpm", fun = "sum", method = c("edgeR", "limma-trend"),
+    treat = c(FALSE)
+  )
 )
 pb$treat[is.na(pb$treat)] <- FALSE
-pb$id <- with(pb, sprintf("%s%s.%s.%s%s", 
-    method, ifelse(treat, "-treat", ""), 
-    fun, ifelse(scale, "scale", ""), assay))
+pb$id <- with(pb, sprintf("%s%s.%s.%s%s",
+                          method, ifelse(treat, "-treat", ""),
+                          fun, ifelse(scale, "scale", ""), assay))
 
 # cdf (distinct) -----------------------------------------------------------------
 distinct <- expand.grid(
   stringsAsFactors = FALSE,
   cores = c(3),
-  assay = c("logcounts", "cpm", "vstresiduals"))
+  assay = c("basics", "linnorm", "logcounts", "cpm", "vstresiduals"))
 distinct$id <- with(distinct, paste0("distinct.", assay, cores))
 
 # mixed-models -----------------------------------------------------------------
@@ -40,16 +45,17 @@ mm <- data.frame(
     ddf = "Satterthwaite")
 mm$id <- with(mm, paste0("MM-", method))
 
+
 # scDD -------------------------------------------------------------------------
 scdd <- data.frame(
     stringsAsFactors = FALSE,
-    assay = c("logcounts", "vstresiduals"))
+    assay = c("vstresiduals", "basics", "linnorm", "cpm"))
 scdd$id <- with(scdd, sprintf("scDD.%s", assay))
 
 # permscdd -------------------------------------------------------------------------
 permscdd <- data.frame(
     stringsAsFactors = FALSE,
-    assay = c("logcounts", "vstresiduals"))
+    assay = c("vstresiduals", "basics", "linnorm", "cpm"))
 permscdd$id <- with(permscdd, sprintf("permscdd.%s", assay))
 
 # write method IDs to .csv -----------------------------------------------------

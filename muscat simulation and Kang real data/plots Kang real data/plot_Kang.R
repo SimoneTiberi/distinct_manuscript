@@ -9,28 +9,10 @@ res_names = list.files(paste0("results/output"), full.names =TRUE)
 res_names
 file.exists(res_names)
 
-methods = c(
-  "distinct.cpm",
-  "distinct.logcounts",
-  "distinct.vstresiduals",
-  "edgeR.sum.counts",
-  "edgeR.sum.scalecpm",
-  "limma-voom.sum.counts",
-  "limma-trend.mean.logcounts",
-  "limma-trend.mean.vstresiduals"
-)
-
-# method names:
-methods_names = c(
-  "distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
-  "distinct.log2-cpm", # distinct.logcounts25FALSE, or distinct.logcounts25FALSE1000,
-  "distinct.vstresiduals", # distinct.vstresiduals25FALSE, or distinct.vstresiduals25FALSE1000,
-  "edgeR.counts",
-  "edgeR.cpm",
-  "limma-voom.counts",
-  "limma-trend.log2-cpm",
-  "limma-trend.vstresiduals"
-)
+source("~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/all_methods.R")
+methods = all_methods[1:15]
+methods = substring(methods, 2) # remove initial ","
+methods_names = methods_names[1:15]
 
 # FILTER LOWLY ABUNDANT gene-cluster combinations:
 # re-load only if not loaded yet:
@@ -46,13 +28,13 @@ sce$cluster_id = sce$cell
 sce$sample_id = paste(sce$stim, sce$ind)
 sce$group_id = sce$stim
 
-sce <- sce[rowSums(counts(sce) > 1) > 20, ]
+sce <- sce[rowSums(counts(sce) > 0) >= 20, ]
 
 sce <- muscat::prepSCE(sce, "cluster_id", "sample_id", "group_id", TRUE) # prep. SCE for `muscat`
 sce
 
 # compute gene-cluster combinations with at least 10 non-zero cells.
-gene_clust_keep = c()
+gene_clust_keep = sum_logcounts = average_logcounts = c()
 clust_levels = levels(sce$cluster_id)
 for(i in 1:length(clust_levels)){
   sel = sce$cluster_id == clust_levels[i]
@@ -63,9 +45,14 @@ for(i in 1:length(clust_levels)){
   
   genes_to_keep = rownames(assays(sce)$counts)[sel_genes]
   
+  sum_logcounts = c(sum_logcounts, rowSums( assays(sce)$counts[sel_genes,sel] ) )
+  average_logcounts = c(average_logcounts, rowMeans( assays(sce)$counts[sel_genes,sel] ) )
   gene_clust_keep = c(gene_clust_keep, paste(clust_levels[i], genes_to_keep, sep = "___") )
 }
 head(gene_clust_keep); tail(gene_clust_keep)
+head(average_logcounts); tail(average_logcounts)
+head(sum_logcounts); tail(sum_logcounts)
+
 
 RES = list()
 for(j in seq_along(methods)){
@@ -90,7 +77,9 @@ for(j in seq_along(methods)){
     RES[[j]] = data.frame( p_val = res$p_val, 
                            p_adj.loc = res$p_adj.loc,
                            p_adj.glb = res$p_adj.glb,
-                           gene_clust_keep = res$clust_gene)
+                           gene_clust_keep = res$clust_gene,
+                           gene_id = res$gene,
+                           cluster_id = res$cluster_id)
   }
 }
 
@@ -128,19 +117,163 @@ sel_NAS = rowSums(is.na(p_val)) == 0
 p_val = p_val[ sel_NAS, ]
 p_adj = p_adj[ sel_NAS, ]
 
-dim(p_val)
+gene_id = RES[[1]]$gene_id[sel_NAS]
+cluster_id = RES[[1]]$cluster_id[sel_NAS]
 
-# make UpSetR PLOT:
+p_val$gene_id = gene_id
+p_adj$gene_id = gene_id
+
+p_val$cluster_id = cluster_id
+p_adj$cluster_id = cluster_id
+
+gene_cluster = RES[[1]]$gene_clust_keep[sel_NAS]
+matches = match(gene_cluster, gene_clust_keep)
+
+p_val$average_logcounts = average_logcounts[matches]
+p_val$sum_logcounts = sum_logcounts[matches]
+
+gene_cluster = strsplit(gene_cluster, "___")
+
+gene_cluster_vec = sapply(gene_cluster, function(x){
+  paste(x[[1]], x[[2]])
+})
+rownames(p_val) = gene_cluster_vec
+rownames(p_adj) = gene_cluster_vec
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+# % of TOP_XX unique genes by each method
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+n_top = 1000
+
+clusters = unique(p_val$cluster_id); clusters
+
+top_xx = lapply(clusters, function(cluster){
+  DF_one_cluster = p_val[p_val$cluster_id == cluster, ]
+  
+  res = lapply(methods_names, function(method){
+    sel = which(colnames(DF_one_cluster) == method )
+    ordering = order(DF_one_cluster[,sel])
+    genes = DF_one_cluster$gene_id[ ordering ]
+    genes[1:n_top]
+  })
+  res = as.data.frame(do.call(cbind, res))
+  colnames(res) = methods_names
+  res$cluster = cluster
+  res
+})
+
+consistent_results = sapply(1:length(top_xx), function(x){
+  DF = top_xx[[x]]
+  res = sapply(1:15, function(x){
+    all_rest = unlist(DF[,-x])
+    mean(DF[,x] %in% all_rest)
+  })
+  names(res) = methods_names
+  res
+})
+# unique results:
+unique = 100 - 100 * sort(rowMeans(consistent_results), decreasing = TRUE)
+unique
+
+library(xtable)
+xtable(data.frame(unique = unique),
+       digits = 1)
+limma-trend.cpm         edgeR.cpm        limma-voom.counts         distinct.linnorm      limma-trend.linnorm 
+27                       10                        6                        4                        4 
+edgeR.basics             edgeR.counts       limma-trend.basics limma-trend.vstresiduals            edgeR.linnorm 
+3                        2                        2                        2                        1 
+distinct.cpm    distinct.vstresiduals          distinct.basics    limma-trend.logcounts       distinct.logcounts 
+1                        1                        1                        1                        0 
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rr}
+\hline
+& unique \\ 
+\hline
+distinct.logcounts & 0.4 \\ 
+limma-trend.logcounts & 0.9 \\ 
+distinct.basics & 1.0 \\ 
+distinct.cpm & 1.0 \\ 
+distinct.vstresiduals & 1.0 \\ 
+edgeR.linnorm & 1.2 \\ 
+limma-trend.vstresiduals & 1.5 \\ 
+limma-trend.basics & 1.5 \\ 
+edgeR.counts & 1.6 \\ 
+edgeR.basics & 2.9 \\ 
+limma-trend.linnorm & 3.7 \\ 
+distinct.linnorm & 3.8 \\ 
+limma-voom.counts & 5.6 \\ 
+edgeR.cpm & 10.3 \\ 
+limma-trend.cpm & 26.8 \\ 
+\hline
+\end{tabular}
+\end{table}
+
+# average unique distinct:
+100 - round(100 * mean(consistent_results[1:5,]),1)
+# 1
+
+# average unique edgeR:
+100 - round(100 * mean(consistent_results[6:9,]),1)
+# 4
+
+# average unique limma:
+100 - round(100 * mean(consistent_results[10:15,]),1)
+# 7
+
+consistent_distinct = sapply(1:length(top_xx), function(x){
+  sel = 1:5
+  DF = top_xx[[x]]
+  res = sapply(sel, function(x){
+    all_rest = unlist(DF[,-sel])
+    mean(DF[,x] %in% all_rest)
+  })
+  names(res) = methods_names[sel]
+  res
+})
+
+consistent_edgeR = sapply(1:length(top_xx), function(x){
+  sel = 6:9
+  DF = top_xx[[x]]
+  res = sapply(sel, function(x){
+    all_rest = unlist(DF[,-sel])
+    mean(DF[,x] %in% all_rest)
+  })
+  names(res) = methods_names[sel]
+  res
+})
+
+consistent_limma = sapply(1:length(top_xx), function(x){
+  sel = 10:15
+  DF = top_xx[[x]]
+  res = sapply(sel, function(x){
+    all_rest = unlist(DF[,-sel])
+    mean(DF[,x] %in% all_rest)
+  })
+  names(res) = methods_names[sel]
+  res
+})
+# unique results:
+consistent_all = rbind(consistent_distinct, consistent_edgeR, consistent_limma)
+100 - round(100 * sort(rowMeans(consistent_all)))
+
+
+
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+# UpSetR PLOT
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 round(100 * colMeans(p_adj < 0.01, na.rm = TRUE))
 
 library(UpSetR)
 top_ranking = data.frame(ifelse(p_adj <= 0.05, 1, 0))
 
-if(saving){
+if(FALSE){
   dev.off()
-  pdf(file = "~/Desktop/distinct project/distinct Article/v1/images/Kang/UpsetR.pdf",
-      width = 7,
-      height = 7,
+  pdf(file = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/Kang/Figures/UpsetR.pdf",
+      width = 8,
+      height = 8,
       onefile = FALSE)
   
   upset( top_ranking, 
@@ -158,43 +291,47 @@ upset( top_ranking,
        keep.order = TRUE,
        order.by = "freq")
 
-thrd = 0.05
-sel = rowMeans(p_adj[,c(1:3)] < thrd) == 1 & rowMeans(p_adj[,-c(1:3)] > thrd) == 1
-sum(sel)
-
-gene_cluster = RES[[1]]$gene_clust_keep[sel_NAS]
-
-gene_cluster = strsplit(gene_cluster, "___")
-
-gene_cluster_vec = sapply(gene_cluster, function(x){
-  paste(x[[1]], x[[2]])
-})
-
-exp = metadata(sce)$experiment_info
-
-library(distinct)
-
 # identify interesting profiles:
 TOP_TOP = scan(what = "character", sep = ".")
 .Dendritic cells EIF3K
 .Dendritic cells SRSF9
 .Dendritic cells MRPL41
-.Dendritic cells NDUFA4
 .Dendritic cells RPL24
 .Dendritic cells HNRNPA0
 .Dendritic cells MARCKSL1
 .Dendritic cells GTF3C6
 .FCGR3A+ Monocytes RPL13
+.Dendritic cells PGK1_ENSG00000102144
+.Dendritic cells KDELR2
+.Dendritic cells H2AFV
+.Dendritic cells RPL11
 
 
 
 TOP_TOP = TOP_TOP[TOP_TOP != ""]
 TOP_TOP
 
+# .Dendritic cells NDUFA4
+
+thrd = 0.1
+sel = rowMeans(p_adj[,c(1:5)] < thrd) == 1 & rowMeans(p_adj[,-c(1:5)] > thrd) == 1
+sum(sel)
+# 725
+
+TOP_TOP[ ! TOP_TOP %in% rownames(p_adj)[sel] ]
+
+round(p_adj[gene_cluster_vec %in% TOP_TOP,1:15], 2)
+
+library(distinct)
+
+rowSums(p_adj[gene_cluster_vec %in% TOP_TOP,1:5] <= 0.1) == 5
+rowSums(p_adj[gene_cluster_vec %in% TOP_TOP,6:15] > 0.1)
+# not identified by any method.
+
+exp = metadata(sce)$experiment_info
+
 # plotting function for density plot.
 source("~/Desktop/distinct project/CDF plots/MY_plot_densities.R")
-
-assays(sce)$log2_cpms = assays(sce)$logcounts
 
 PP = list()
 dev.off()
@@ -206,10 +343,13 @@ for(i in which(sel)) {
   
   #if (TRUE) {
   if( paste(cluster, gene) %in% TOP_TOP){
+    gene_main = gene
+    
     if (gene == "HLA-B_ENSG00000234745") {
       gene_main = "HLA-B"
-    } else{
-      gene_main = gene
+    }
+    if (gene == "PGK1_ENSG00000102144") {
+      gene_main = "PGK1"
     }
     
     print(paste(i, cluster, gene))
@@ -219,7 +359,7 @@ for(i in which(sel)) {
       x = sce,
       gene = gene,
       cluster = cluster,
-      name_assays_expression = "log2_cpms"
+      name_assays_expression = "logcounts"
     ) +
       geom_hline(yintercept = 0,
                  linetype = "dashed",
@@ -241,12 +381,12 @@ for(i in which(sel)) {
         legend.margin = margin()
       ) +
       labs(title = paste(cluster, "-", gene_main))
-
+    
     p_3 <- plot_densities(
       x = sce,
       gene = gene,
       cluster = cluster,
-      name_assays_expression = "log2_cpms",
+      name_assays_expression = "logcounts",
       group_level = TRUE
     ) +
       geom_hline(yintercept = 0,
@@ -274,7 +414,7 @@ for(i in which(sel)) {
       x = sce,
       gene = gene,
       cluster = cluster,
-      name_assays_expression = "log2_cpms",
+      name_assays_expression = "logcounts",
       adjust = 1,
       size = 1.5
     ) +
@@ -305,7 +445,7 @@ for(i in which(sel)) {
       x = sce,
       gene = gene,
       cluster = cluster,
-      name_assays_expression = "log2_cpms"
+      name_assays_expression = "logcounts"
     ) +
       theme(
         axis.text = element_text(size = rel(2)),
@@ -326,7 +466,7 @@ for(i in which(sel)) {
       x = sce,
       gene = gene,
       cluster = cluster,
-      name_assays_expression = "log2_cpms",
+      name_assays_expression = "logcounts",
       group_level = TRUE,
       size = 1.5
     ) +
@@ -344,7 +484,7 @@ for(i in which(sel)) {
         legend.margin = margin()
       ) +
       labs(title = paste(cluster, "-", gene_main))
-      
+    
     
     AA = egg::ggarrange(
       plots =
@@ -366,7 +506,7 @@ for(i in which(sel)) {
         filename = gsub(" ", "", paste0(cluster, "-", gene, ".pdf")),
         plot = AA,
         device = "pdf",
-        path = "~/Desktop/distinct project/distinct Article/v1/images/Kang/",
+        path = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/Kang/Figures/",
         width = 16,
         height = 16,
         units = "in",
@@ -429,19 +569,22 @@ AA = egg::ggarrange( plots =
                          PP[[4]][[5]] + xlab("") + theme(legend.position = "none"),
                          PP[[5]][[5]] + xlab("") + ylab("") + theme(legend.position = "none"),
                          PP[[6]][[5]] + xlab("") + ylab("") + theme(legend.position = "none"),
-                         PP[[7]][[5]] + theme(legend.position = "none"),
-                         PP[[8]][[5]] + ylab("") + theme(legend.position = "none"),
-                         PP[[9]][[5]] + ylab("") + theme(legend.position = "none")),
+                         PP[[7]][[5]] + xlab("") + theme(legend.position = "none"),
+                         PP[[8]][[5]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[9]][[5]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[10]][[5]] + theme(legend.position = "none"),
+                         PP[[11]][[5]] + ylab("") + theme(legend.position = "none"),
+                         PP[[12]][[5]] + ylab("") + theme(legend.position = "none")),
                      bottom = get_legend( PP[[1]][[5]] ),
-                     ncol = 3, nrow = 3)
-AA
+                     ncol = 3, nrow = 4)
+#AA
 
 if(saving){
-  ggsave(filename = "9_in_1_horizontal.pdf",
+  ggsave(filename = "12_in_1_horizontal.pdf",
          plot = AA,
          device = "pdf",
-         path = "~/Desktop/distinct project/distinct Article/v1/images/Kang/",
-         width = 12,
+         path = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/Kang/Figures/",
+         width = 9,
          height = 12,
          units = "in",
          dpi = 300,
@@ -457,19 +600,22 @@ AA = egg::ggarrange( plots =
                          PP[[4]][[1]] + xlab("") + theme(legend.position = "none"),
                          PP[[5]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
                          PP[[6]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
-                         PP[[7]][[1]] + theme(legend.position = "none"),
-                         PP[[8]][[1]] + ylab("") + theme(legend.position = "none"),
-                         PP[[9]][[1]] + ylab("") + theme(legend.position = "none")),
+                         PP[[7]][[1]] + xlab("") + theme(legend.position = "none"),
+                         PP[[8]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[9]][[1]] + xlab("") + ylab("") + theme(legend.position = "none"),
+                         PP[[10]][[1]] + theme(legend.position = "none"),
+                         PP[[11]][[1]] + ylab("") + theme(legend.position = "none"),
+                         PP[[12]][[1]] + ylab("") + theme(legend.position = "none")),
                      bottom = get_legend( PP[[1]][[5]] ),
-                     ncol = 3, nrow = 3)
-AA
+                     ncol = 3, nrow = 4)
+#AA
 
 if(saving){
-  ggsave(filename = "9_in_1_horizontal_INDIVIDUAL.pdf",
+  ggsave(filename = "12_in_1_horizontal_INDIVIDUAL.pdf",
          plot = AA,
          device = "pdf",
-         path = "~/Desktop/distinct project/distinct Article/v1/images/Kang/",
-         width = 12,
+         path = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/Kang/Figures/",
+         width = 9,
          height = 12,
          units = "in",
          dpi = 300,

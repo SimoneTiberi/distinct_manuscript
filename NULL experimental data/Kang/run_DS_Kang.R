@@ -3,6 +3,8 @@ alias R='R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.0 /usr/local/R/R-4.
 export R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.0 ; /usr/bin/time -v /usr/local/R/R-4.0.0/bin/R -e '.libPaths()'
 R
 
+setwd("~/Desktop/distinct project/EXPERIMENTAL data/Kang (muscData)")
+
 rm(list =ls())
 
 library(muscData)
@@ -21,7 +23,7 @@ mean(sel)
 sce = sce[, sel ]
 
 # remove genes with < 10 non-zero cells (across ALL clusters).
-sel_genes = rowSums( assays(sce)$counts>0 ) >= 10
+sel_genes = rowSums( assays(sce)$counts>0 ) >= 20
 mean(sel_genes)
 sce = sce[ sel_genes , ]
 
@@ -66,23 +68,87 @@ sce <- computeLibraryFactors(sce)
 sce <- logNormCounts(sce)
 assays(sce)$cpm <- calculateCPM(sce)
 
-# store counts and remove sce object:
-sce_counts = assays(sce)$counts
-rownames(sce_counts) = seq_len(nrow(sce_counts))
+# Linnorm:
+library(Linnorm)
+Linnorm_data <- Linnorm.Norm( assays(sce)$counts )
+assays(sce)$linnorm = Linnorm_data
 
-log_CPM = assays(sce)$logcounts
-rownames(log_CPM) = seq_len(nrow(log_CPM))
-
-sce_CPM = as.matrix(assays(sce)$cpm)
-rownames(sce_CPM) = seq_len(nrow(sce_CPM))
-
+# vst:
 vstresiduals = sctransform::vst( as.matrix(sce_counts) )$y
+assays(sce)$vstresiduals = vstresiduals
+
+# basics:
+library(BASiCS)
+
+sce$BatchInfo = sce$ind
+
+Chain <- BASiCS_MCMC(sce, WithSpikes = FALSE, Regression = FALSE,
+                     N = 10^3,
+                     Thin = 10,
+                     Burn = 500)
+
+assays(sce)$basics <- BASiCS_DenoisedCounts(sce, Chain)
+
+#save(sce, file = "results/sce.RData")
+#load("results/sce.RData")
+
+# store norm counts and remove sce object:
+logcounts = as.matrix(assays(sce)$logcounts)
+rownames(logcounts) = seq_len(nrow(logcounts))
+
+cpm = as.matrix(assays(sce)$cpm)
+rownames(cpm) = seq_len(nrow(cpm))
+
+vstresiduals = as.matrix(assays(sce)$vstresiduals)
+rownames(vstresiduals) = seq_len(nrow(vstresiduals))
+
+linnorm = as.matrix(assays(sce)$linnorm)
+rownames(linnorm) = seq_len(nrow(linnorm))
+
+basics = as.matrix(assays(sce)$basics)
+rownames(basics) = seq_len(nrow(basics))
 
 rm(sce)
 
+###############################################################################################
+# define PB methods:
+###############################################################################################
+pb <- dplyr::bind_rows(
+  expand.grid(
+    stringsAsFactors = FALSE,
+    assay =  "counts", fun = "sum", scale = FALSE,
+    method = c("edgeR", "limma-voom"),
+    treat = c(FALSE)
+  ),
+  expand.grid(
+    stringsAsFactors = FALSE, scale = FALSE,
+    assay = c("logcounts", "vstresiduals", "linnorm", "basics"),
+    fun = "mean", method = c("limma-trend")
+  ),
+  expand.grid(
+    stringsAsFactors = FALSE, scale = FALSE,
+    assay = c("linnorm", "basics"),
+    fun = "mean", method = c("edgeR")
+  ),
+  data.frame(
+    stringsAsFactors = FALSE, scale = TRUE,
+    assay = "cpm", fun = "sum", method = c("edgeR", "limma-trend"),
+    treat = c(FALSE)
+  )
+)
+pb$treat[is.na(pb$treat)] <- FALSE
+pb$id <- with(pb, sprintf("%s%s.%s.%s%s",
+                          method, ifelse(treat, "-treat", ""),
+                          fun, ifelse(scale, "scale", ""), assay))
+
+###############################################################################################
+# run:
+###############################################################################################
+
 res_distinct = RES_PB = list()
 
-par(mfrow = c(3,6))
+library(SingleCellExperiment)
+
 for(g in 1:n_groups){
   groups = GROUPS[[g]]
   
@@ -97,153 +163,73 @@ for(g in 1:n_groups){
                      cluster_id = clust,
                      group_id = factor(group_id))
   
-  x <- SingleCellExperiment(assays = list(counts = as.matrix(sce_counts),
-                                          cpm = as.matrix(sce_CPM),
-                                          logcounts = as.matrix(log_CPM),
-                                          vstresiduals = vstresiduals),
+  x <- SingleCellExperiment(assays = list(counts = sce_counts,
+                                          cpm = cpm,
+                                          logcounts = logcounts,
+                                          vstresiduals = vstresiduals,
+                                          linnorm = linnorm,
+                                          basics = basics),
                             colData = colData_sel,
                             metadata = list(experiment_info = experiment_info_sel,
                                             n_cells = table(colData_sel$sample_id)))
-
+  
+  print(paste("sce defined - ", g))
   
   # WITHOUT as.matrix(sce_counts)) aggregateData fails!
   
-  print(paste("x created - ", g))
-  
-  # PB WITH COUNTS:
-  # PSEUDO-BULK on raw counts
-  library(muscat)
-  pb <- aggregateData(x,
-                      assay = "counts", fun = "sum",
-                      by = c("cluster_id", "sample_id"))
-  assayNames(pb)
-  
   RES_PB[[g]] = list()
+  # PB methods:
+  library(muscat)
   
-  set.seed(61217)
-  try({ res <- pbDS(pb, method = c("edgeR"),
-                    min_cells = 1,
-                    verbose = FALSE, filter = "none")
-  RES = do.call(rbind, res$table[[1]])
-  hist(RES$p_val)
-  
-  RES_PB[[g]]$edgeR.counts = RES
-  }, TRUE)
-  
-  set.seed(61217)
-  try({ res <- pbDS(pb, method = c("limma-voom"),
-                    min_cells = 1,
-                    verbose = FALSE, filter = "none")
-  RES = do.call(rbind, res$table[[1]])
-  hist(RES$p_val)
-  
-  RES_PB[[g]]$limma_voom.counts = RES
-  }, TRUE)
-  
-  
-  # PB WITH CPM:
-  # PSEUDO-BULK on raw counts
-  rm(pb)
-  pb <- aggregateData(x,
-                      assay = "cpm", fun = "sum",
-                      by = c("cluster_id", "sample_id"))
-  assayNames(pb)
-  
-  set.seed(61217)
-  try({ res <- pbDS(pb, method = c("edgeR"),
-                    min_cells = 1,
-                    verbose = FALSE, filter = "none")
-  RES = do.call(rbind, res$table[[1]])
-  hist(RES$p_val)
-  
-  RES_PB[[g]]$edgeR.cpm = RES
-  }, TRUE)
-  
-  
-  # PB WITH logcounts:
-  # PSEUDO-BULK on raw counts
-  rm(pb)
-  pb <- aggregateData(x,
-                      assay = "logcounts", fun = "sum",
-                      by = c("cluster_id", "sample_id"))
-  assayNames(pb)
-  
-  set.seed(61217)
-  try({ res <- pbDS(pb, method = c("limma-trend"),
-                    min_cells = 1,
-                    verbose = FALSE, filter = "none")
-  RES = do.call(rbind, res$table[[1]])
-  hist(RES$p_val)
-  
-  RES_PB[[g]]$limma_trend.logcounts = RES
-  }, TRUE)
-  
-  
-  # PB WITH vstresid:
-  # PSEUDO-BULK on raw counts
-  rm(pb)
-  pb <- aggregateData(x,
-                      assay = "vstresiduals", fun = "sum",
-                      by = c("cluster_id", "sample_id"))
-  assayNames(pb)
-  
-  set.seed(61217)
-  try({ res <- pbDS(pb, method = c("limma-trend"),
-                    min_cells = 1,
-                    verbose = FALSE, filter = "none")
-  RES = do.call(rbind, res$table[[1]])
-  hist(RES$p_val)
-  
-  RES_PB[[g]]$limma_trend.vstresiduals = RES
-  }, TRUE)
-  
+  for(i in 1:nrow(pb)){
+    assay = pb$assay[i]
+    fun = pb$fun[i]
+    scale = pb$scale[i]
+    method = pb$method[i]
+    
+    PB <- aggregateData(x,
+                        assay = assay, fun = fun,
+                        scale = scale,
+                        by = c("cluster_id", "sample_id"))
+    
+    set.seed(61217)
+    try({ res <- pbDS(PB, method = method,
+                      min_cells = 1,
+                      verbose = FALSE, filter = "none")
+    RES = do.call(rbind, res$table[[1]])
+    
+    RES_PB[[g]][[i]] = RES
+    }, TRUE)
+  }
+  names(RES_PB[[g]]) = pb$id
   
   print(paste("PB done - ", g))
   
+  ###############################################################################################
   # run distinct:
+  ###############################################################################################
+  assays = c("cpm", "logcounts", "vstresiduals", "linnorm", "basics")
+  
   design_distinct = model.matrix(~metadata(x)$experiment_info$group_id)
   rownames(design_distinct) = metadata(x)$experiment_info$sample_id
   
   res_distinct[[g]] = list()
   
   library(distinct)
-  set.seed(61217)
-  print(system.time({
+  for(i in 1:length(assays)){
+    assay = assays[i]
+    
+    set.seed(61217)
     res = distinct_test(x, 
-                        name_assays_expression = "cpm",
+                        name_assays_expression = assay,
                         design = design_distinct,
                         min_non_zero_cells = 10,
-                        n_cores = 10)
-  }))
-  res_distinct[[g]]$cpm = res
-  
-  print(paste("distinct cpm done - ", g))
-  
-  set.seed(61217)
-  print(system.time({
-    res = distinct_test(x, 
-                        name_assays_expression = "logcounts",
-                        design = design_distinct,
-                        min_non_zero_cells = 10,
-                        n_cores = 10)
-  }))
-  res_distinct[[g]]$logcounts = res
-  
-  print(paste("distinct logcounts done - ", g))
-  
-  set.seed(61217)
-  print(system.time({
-    res = distinct_test(x, 
-                        name_assays_expression = "vstresiduals",
-                        design = design_distinct,
-                        min_non_zero_cells = 0,
-                        n_cores = 10)
-  }))
-  res_distinct[[g]]$vstresiduals = res  
-  
-  print(paste("distinct vstresiduals done - ", g))
+                        n_cores = 8)
+    res_distinct[[g]][[i]] = res
+    
+    print(paste("distinct done - ", assay))
+  }
+  names(res_distinct[[g]]) = assays
 }
 
 save(GROUPS, clust, n_groups, res_distinct, RES_PB, sce_counts, file = paste0("results/res_cell_clust_7Samples.RData") )
-# load(paste0("results/res_cell_clust_7Samples.RData"))
-

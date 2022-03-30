@@ -9,12 +9,6 @@ suppressMessages({
 apply_pb <- function(sce, pars, ds_only = TRUE) {
     t1 <- system.time({
         a <- pars$assay
-        if (!ds_only) 
-            assay(sce, a) <- switch(a, 
-                counts = counts(sce),
-                cpm = calculateCPM(counts(sce)),
-                logcounts = normalizeCounts(computeLibraryFactors(sce)),
-                vstresiduals = vst(counts(sce), show_progress = FALSE)$y)
         pb <- aggregateData(sce, a, fun = pars$fun, scale = pars$scale)
     })[[3]]
     t2 <- system.time({

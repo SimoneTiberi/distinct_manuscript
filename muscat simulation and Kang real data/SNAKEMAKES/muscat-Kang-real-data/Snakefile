@@ -34,7 +34,7 @@ rule run_meth_kang:
         priority: 10
         threads: 1
         input:  script = config["scripts"] + "run_meth_kang.R",
-                        sce = "data/raw_data/sce0_kang.rds",
+                        sce = "data/raw_data/sce_kang_norm.rds",
                         meth_pars = config["meth_pars"] + "{mid}.json",
                         fun = lambda wc: config["scripts"] + "apply_" + mids.loc[wc.mid, "type"] + ".R"
         output: res = "KANG/output/DS_results_{mid}.rds"

@@ -29,7 +29,7 @@ if(sim_pars$p_dv > 0){
                           ns = sim_pars$ns, nk = sim_pars$nk,
                           p_dd = sim_pars$p_dd, probs = sim_pars$probs,
                           rel_be_c = rep(0.4, sim_pars$nk),
-                          lfc_be = 0.5, batch_design = batch_design, nb = 2,
+                          lfc_be = 0.4, batch_design = batch_design, nb = 2,
                           p_DV = sim_pars$p_dv)
 }else{
   sim <- muscat.batch:::simData(sce,
@@ -39,7 +39,7 @@ if(sim_pars$p_dv > 0){
                                 ns = sim_pars$ns, nk = sim_pars$nk,
                                 p_dd = sim_pars$p_dd, probs = sim_pars$probs,
                                 rel_be_c = rep(0.4, sim_pars$nk),
-                                lfc_be = 0.5, batch_design = batch_design, nb = 2)
+                                lfc_be = 0.4, batch_design = batch_design, nb = 2)
 }
 
 # store batch in the experimental info:
@@ -70,7 +70,24 @@ assays(sim)$cpm <- calculateCPM(sim)
 assays(sim)$vstresiduals <- suppressWarnings(
     vst(counts(sim), show_progress = FALSE)$y)
 
+# basics:
+library(BASiCS)
+
+sim$BatchInfo = sim$sample_id
+
+Chain <- BASiCS_MCMC(sim, WithSpikes = FALSE, Regression = FALSE,
+                     N = 10^3,
+                     Thin = 10,
+                     Burn = 500)
+
+assays(sim)$basics <- BASiCS_DenoisedCounts(sim, Chain)
+
 # add log2-vstresiduals
 assays(sim)$logvstresiduals <- log2(assays(sim)$vstresiduals - min(assays(sim)$vstresiduals) + 1)
+
+# add Linnorm normalized data:
+library(Linnorm)
+Linnorm_data <- Linnorm.Norm( assays(sim)$counts )
+assays(sim)$linnorm = Linnorm_data
 
 saveRDS(sim, args$sim)

@@ -1,0 +1,115 @@
+# did: reference dataset ID
+# sid: simulation ID
+# mid: method ID
+
+# i: simulation replicate
+# j: method run replicate
+
+# g: # genes
+# c: # cells
+# k: # clusters
+# s: # samples
+
+import pandas as pd
+import json
+import re
+
+configfile: "config.yaml"
+R = config["R"]
+
+# check for updates in simulation, run, method parameters
+l = config["logs"]
+onstart:
+	shell("{R} CMD BATCH --no-restore --no-save scripts/sim_pars.R  '{l}sim_pars.Rout'")  
+	shell("{R} CMD BATCH --no-restore --no-save scripts/run_pars.R  '{l}run_pars.Rout'")  
+	shell("{R} CMD BATCH --no-restore --no-save scripts/meth_pars.R '{l}meth_pars.Rout'") 
+
+sids = json.loads(open(config["sids"]).read())
+mids = pd.read_csv(config["mids"])
+mids = mids.set_index(mids["id"])
+
+sim_dirs = []
+res_dirs = []
+for sid in sids:
+	sim_pars = json.loads(open(config["sim_pars"] + sid + ".json").read())
+	for did in config["dids"]:
+		run_pars = json.loads(open(config["run_pars"] + did + "," + sid + ".json").read())
+		if run_pars is None: continue
+		sim_dirs.append(expand(\
+			config["sim_data"] + "{did},{sid},{i}.rds",\
+			did = did, sid = sid, i = range(1, sim_pars["nr"][0] + 1)))
+		
+		if bool(re.match(r"d[a-z][0-9]+$", sid)) and did == "kang": 
+			inc_mids = mids.id
+		else:
+			inc_mids = mids.id[mids.id.str.find("treat") == -1]
+		res_dirs.append(expand(\
+			config["results"] + "{did},{sid},{i},{mid},{j},g{g},c{c},k{k},s{s}.rds",
+			did = did, sid = sid, mid = inc_mids,\
+			i = range(1, sim_pars["nr"][0] + 1),\
+			j = range(1, run_pars["nr"][0] + 1),\
+			g = run_pars["ng"], c = run_pars["nc"],\
+			k = run_pars["nk"], s = run_pars["ns"]))
+
+sim_dirs = sum(sim_dirs, [])
+res_dirs = sum(res_dirs, [])
+
+rule all: 
+	input:	sim_dirs, res_dirs
+
+rule prep_sce:
+	priority: 100
+	input:  script = config["scripts"] + "prep_{did}.R",
+		sce = config["raw_data"] + "sce0_{did}.rds"
+	output:	sce = config["raw_data"] + "sce_{did}.rds"
+	log:	config["logs"] + "prep_sce-{did}.Rout"
+	shell:	'''{R} CMD BATCH --no-restore --no-save\
+		"--args input_sce={input.sce} output_sce={output.sce}"\
+		{input.script} {log}'''
+
+rule prep_sim:
+	priority: 99
+	input:	script = config["scripts"] + "prep_sim.R",
+			sce = config["raw_data"] + "sce_{did}.rds"
+	output:	sce = config["raw_data"] + "ref_{did}.rds"
+	log:	config["logs"] + "prep_sim-{did}.Rout"
+	shell:	'''{R} CMD BATCH --no-restore --no-save\
+		"--args input_sce={input.sce} output_sce={output.sce}"\
+		{input.script} {log}'''
+
+
+rule sim_data:
+	priority: 98
+	input:  script = config["scripts"] + "sim_data.R",
+			sim_pars = config["sim_pars"] + "{sid}.json",
+			sce = config["raw_data"] + "ref_{did}.rds"
+	output: sim = config["sim_data"] + "{did},{sid},{i}.rds"
+	log:	config["logs"] + "sim_data-{did},{sid},{i}.Rout"
+	shell:	'''{R} CMD BATCH --no-restore --no-save\
+		"--args sce={input.sce} sim={output.sim}\
+		sim_pars={input.sim_pars} wcs={wildcards}"\
+		{input.script} {log}'''
+
+rule run_meth:
+	priority: 97
+	threads: 1
+	input:	script = config["scripts"] + "run_meth.R",
+			sim = config["sim_data"] + "{did},{sid},{i}.rds",
+			meth_pars = config["meth_pars"] + "{mid}.json",
+			run_pars = config["run_pars"] + "{did},{sid}.json",
+			fun = lambda wc: config["scripts"] + "apply_" + mids.loc[wc.mid, "type"] + ".R"
+	output: res = config["results"] + "{did},{sid},{i},{mid},{j},g{g},c{c},k{k},s{s}.rds"
+	log:	config["logs"] + "run_meth-{did},{sid},{i},{mid},{j},g{g},c{c},k{k},s{s}.Rout"
+	shell:	'''{R} CMD BATCH --no-restore --no-save\
+		"--args sim={input.sim} fun={input.fun} wcs={wildcards}\
+		meth_pars={input.meth_pars} run_pars={input.run_pars} res={output.res}"\
+		{input.script} {log}'''
+
+# write session info to .txt file
+rule session_info:
+	priority: 1
+	input:	config["scripts"] + "session_info.R"
+	output:	"session_info.txt"
+	log:	config["logs"] + "session_info.Rout" 
+	shell:	'''{R} CMD BATCH --no-restore --no-save\
+	"--args txt={output}" {input} {log}'''

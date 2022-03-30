@@ -330,6 +330,7 @@ sample_gene_inds_DV = function (gs, ns, cats){
   vapply(cluster_ids, function(k) split(sample(gs), rep.int(cats, ns[, k])), vector("list", length(cats)))
 }
 
+
 sim_DV_batch <- function(
   cat = c("ee", "ep", "de", "dp", "dm", "db", "dv"), 
   cs_g1, cs_g2, m_g1, m_g2, d, lfc, ep, dp, dm) {

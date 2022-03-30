@@ -1,85 +1,19 @@
-library(ggplot2)
-
 rm(list = ls())
 setwd("~/Desktop/distinct project/SIMULATED data/FULL muscat pipeline")
 
-saving = TRUE
-
-pairing = c("paired") # "unpaired"
-local = TRUE # locally vs globally adjusted p-values
+library(ggplot2)
+pairing = "paired" 
+local = 1 # locally, globally adjusted p-values, 3 overall with filtered
 min_sim_mean = 0.2
 n_cells = 200
 n_rep = 5
 
-data = "kang" # "magl" or "kang"
+# NEW RESULTS:
+res_names = list.files(paste0("results/results_7Samples"), full.names =TRUE)
+file.exists(res_names)
 
-# NEW RESULTS with 100 cells:
-res_names = list.files(paste0("results/results_7Samples/"), full.names =TRUE)
-
-methods = c(
-  ",distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
-  ",distinct.logcounts", # distinct.logcounts25FALSE, or distinct.logcounts25FALSE1000,
-  ",distinct.vstresiduals", # distinct.vstresiduals25FALSE, or distinct.vstresiduals25FALSE1000,
-  ",edgeR.sum.counts",
-  ",edgeR.sum.scalecpm",
-  ",limma-voom.sum.counts",
-  ",limma-trend.mean.logcounts",
-  ",limma-trend.mean.vstresiduals",
-  ",MM-dream2",
-  ",MM-nbinom",
-  ",MM-vst",
-  ",scDD.logcounts",
-  ",scDD.vstresiduals",
-  ",permscDD.logcounts",
-  ",permscDD.vstresiduals"
-)
-
-library(RColorBrewer);
-all_colours = c(
-  brewer.pal(4, "Reds")[4:2],    # distinct cpm, logcounts, vstresid
-  brewer.pal(3, "Blues")[3:2],    # edgeR 2 methods
-  brewer.pal(4, "Greens")[4:2],   # limma-trend 1 method + # limma-voom 2 methods
-  brewer.pal(4, "Greys")[4:2],   # MM 3 methods
-  brewer.pal(5, "RdPu")[5:2]   # scDD 3 methods
-)
-# Purples Oranges Greys
-
-all_methods = c(
-  ",distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
-  ",distinct.logcounts", # distinct.logcounts25FALSE, or distinct.logcounts25FALSE1000,
-  ",distinct.vstresiduals", # distinct.vstresiduals25FALSE, or distinct.vstresiduals25FALSE1000,
-  ",edgeR.sum.counts",
-  ",edgeR.sum.scalecpm",
-  ",limma-voom.sum.counts",
-  ",limma-trend.mean.logcounts",
-  ",limma-trend.mean.vstresiduals",
-  ",MM-dream2",
-  ",MM-nbinom",
-  ",MM-vst",
-  ",scDD.logcounts",
-  ",scDD.vstresiduals",
-  ",permscDD.logcounts",
-  ",permscDD.vstresiduals"
-)
-
-# methods names:
-methods_names = c(
-  "distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
-  "distinct.log2-cpm", # distinct.logcounts25FALSE, or distinct.logcounts25FALSE1000,
-  "distinct.vstresiduals", # distinct.vstresiduals25FALSE, or distinct.vstresiduals25FALSE1000,
-  "edgeR.counts",
-  "edgeR.cpm",
-  "limma-voom.counts",
-  "limma-trend.log2-cpm",
-  "limma-trend.vstresiduals",
-  "MM-dream2",
-  "MM-nbinom",
-  "MM-vstresiduals",
-  "scDD-KS.log2-cpm",
-  "scDD-KS.vstresiduals",
-  "scDD-perm.log2-cpm",
-  "scDD-perm.vstresiduals"
-)
+source("~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/all_methods.R")
+methods = all_methods
 
 # all_methods = sort(all_methods)
 match = match( methods,  all_methods )
@@ -157,7 +91,7 @@ p <- ggplot(data = RES, aes(x = p_val, y = ..ndensity..,
   scale_x_continuous("p-value", breaks = seq(0, 1, 0.2), expand = c(0, 0.05)) +
   scale_y_continuous("density", breaks = c(0, 1), expand = c(0, 0.1)) +
   .prettify("bw") + 
-  theme(aspect.ratio = 0.6,
+  theme(aspect.ratio = 0.5,
         #legend.box.just = "left",
         panel.grid = element_blank(),
         panel.spacing = unit(1, "mm"),
@@ -180,14 +114,14 @@ p <- ggplot(data = RES, aes(x = p_val, y = ..ndensity..,
   scale_fill_manual(values = colours)
 p
 
-if(saving){
-  ggsave(filename = paste0("Muscat-null.pdf"),
-         plot = last_plot(),
-         device = "pdf",
-         path = "~/Desktop/distinct project/distinct Article/v1/images/muscat",
-         width = 6.4,
-         height = 6.5,
-         units = "in",
-         dpi = 300,
-         limitsize = TRUE)
-}
+ggsave(filename = paste0("Muscat-null.pdf"),
+       plot = last_plot(),
+       device = "pdf",
+       path = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/plots muscat simulation - NEW normalization/Plots/",
+       width = 6.25,
+       height = 9.3,
+       units = "in",
+       dpi = 300,
+       limitsize = TRUE)
+
+

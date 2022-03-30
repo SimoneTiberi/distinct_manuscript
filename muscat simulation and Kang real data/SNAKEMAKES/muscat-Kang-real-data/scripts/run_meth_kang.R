@@ -9,30 +9,10 @@ suppressMessages({
 
 sce <- readRDS(args$sce)
 
-sce <- sce[, sce$multiplets == "singlet"] # remove multiplets
-sce <- sce[, !is.na(sce$cell)] # remove unassigned cells
-
-# REMOVE 2 samples (potential outliers): 1039
-sce <- sce[, sce$ind %in% c(101, 107, 1015, 1016, 1244, 1256, 1488)] # keep control samples only
-
-sce$cluster_id = sce$cell
-sce$sample_id = paste(sce$stim, sce$ind)
-sce$group_id = sce$stim
-colData(sce) = colData(sce)[, -c(1:5)]
-sce <- sce[rowSums(counts(sce) > 1) > 20, ]
-
-vstresiduals = sctransform::vst( assays(sce)$counts, show_progress = FALSE)$y
-assays(sce)$vstresiduals = vstresiduals
-
-# add experimental_info via muscat::prepSCE function
-sce <- prepSCE(sce, "cluster_id", "sample_id", "group_id", TRUE) # prep. SCE for `muscat`
+print(names(assays(sce)))
 
 nk <- length(kids <- levels(sce$cluster_id))
 meth_pars <- as.list(fromJSON(args$meth_pars))
-
-# increase number of threads used by AD & mixed model methods
-if (grepl("AD|MM|MAST", wcs$mid)) 
-    meth_pars$n_threads <- as.numeric(args$n_threads)
 
 # run method & write results to .rds
 source(fun <- args$fun)

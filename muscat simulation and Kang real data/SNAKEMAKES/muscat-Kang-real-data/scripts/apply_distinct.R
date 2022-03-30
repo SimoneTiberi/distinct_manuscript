@@ -6,16 +6,9 @@ suppressMessages({
 
 apply_distinct <- function(sce, pars, ds_only = TRUE) {
   t <- system.time({
-    a <- pars$assay # assay (counts, cpm, logcounts or vstresiduals)
+    a <- pars$assay
     cores = as.numeric(pars$cores)
 
-    if (!ds_only) 
-      assay(sce, a) <- switch(a, 
-                              counts = counts(sce),
-                              cpm = calculateCPM(counts(sce)),
-                              logcounts = normalizeCounts(computeLibraryFactors(sce)),
-                              vstresiduals = vst(counts(sce), show_progress = FALSE)$y)
-    
     # create the design of the study:
     samples = metadata(sce)$experiment_info$sample_id
 

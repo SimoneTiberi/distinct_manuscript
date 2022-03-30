@@ -7,9 +7,19 @@ RES_ALL = list()
 for(i in 1:3){
   RES_ALL[[i]] = c( res_distinct[[i]],
                     RES_PB[[i]] )
-  names(RES_ALL[[i]]) = c("distinct.cpm", "distinct.log2-cpm", "distinct.vstresiduals",
-                          "edgeR.counts", "limma-voom.counts", "edgeR.cpm",           
-                          "limma-trend.log2-cpm", "limma-trend.vstresiduals")
+  names_distinct = paste0("distinct.", names(res_distinct[[i]]))
+  names_PB = names(RES_PB[[i]])
+  
+  # remove PB middle part name:
+  names_PB = sapply(names_PB, function(x){
+    a = strsplit(x, ".", fixed = TRUE)[[1]]
+    paste0(a[1], ".", a[3])
+  })
+  
+  # replace "scalecpm" with "cpm":
+  names_PB = sub("scalecpm", "cpm", names_PB)
+  
+  names(RES_ALL[[i]]) = c(names_distinct, names_PB)
 }
 
 str(RES_ALL[[1]])
@@ -108,38 +118,10 @@ p_vals_filt$replicate = as.factor(p_vals_filt$replicate)
 # match colours to methods:
 methods = sort(unique(p_vals_filt$method))
 
-library(RColorBrewer);
-all_colours = c(
-  brewer.pal(4, "Reds")[4:2],    # distinct cpm, logcounts, vstresid
-  brewer.pal(3, "Blues")[3:2],    # edgeR 2 methods
-  brewer.pal(4, "Greens")[4:2],   # limma-trend 1 method + # limma-voom 2 methods
-  brewer.pal(4, "Greys")[4:2],   # MM 3 methods
-  brewer.pal(5, "RdPu")[5:2]   # scDD 3 methods
-)
-# Purples Oranges Greys
+source("~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/all_methods.R")
 
-all_methods = c(
-  "distinct.cpm", # distinct.cpm25FALSE, or distinct.cpm25FALSE1000,
-  "distinct.log2-cpm", # distinct.logcounts25FALSE, or distinct.logcounts25FALSE1000,
-  "distinct.vstresiduals", # distinct.vstresiduals25FALSE, or distinct.vstresiduals25FALSE1000,
-  "edgeR.counts",
-  "edgeR.cpm",
-  "limma-voom.counts",
-  "limma-trend.log2-cpm",
-  "limma-trend.vstresiduals",
-  "MM-dream2",
-  "MM-nbinom",
-  "MM-vst",
-  "scDD.logcounts",
-  "scDD.vstresiduals",
-  "permscdd.logcounts",
-  "permscdd.vstresiduals"
-)
-all_methods = sort(all_methods)
-
-match = match( methods,  all_methods )
-head(sort(methods)); head(all_methods[match])
-colours = c(all_colours[match])
+match = match( methods,  methods_names )
+colours = c(all_colours[match], "white")
 
 p <- ggplot(data = p_vals_filt, aes(x = p_val, y = ..ndensity.., 
                                     col = method, fill = method, lty = replicate),
@@ -177,13 +159,14 @@ p <- ggplot(data = p_vals_filt, aes(x = p_val, y = ..ndensity..,
   scale_fill_manual(values = colours)
 p
 
+
 p_T_cells = p
 save(p_T_cells, file = "p_T_cells.RData")
 
 ggsave(filename = paste0("null-T-cells.pdf"),
        plot = last_plot(),
        device = "pdf",
-       path = "~/Desktop/distinct project/distinct Article/v1/images/NULL",
+       path = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/NULL experimental data/Figures",
        width = 8,
        height = 4,
        units = "in",
@@ -195,7 +178,7 @@ p + theme(legend.position = "none")
 ggsave(filename = paste0("null-T-cells-NO-legend.pdf"),
        plot = last_plot(),
        device = "pdf",
-       path = "~/Desktop/distinct project/distinct Article/v1/images/NULL",
+       path = "~/Desktop/distinct project/distinct Article/scripts/NEW - revision analyses/NULL experimental data/Figures",
        width = 8,
        height = 3,
        units = "in",
@@ -212,6 +195,33 @@ colnames(FPs) = c(0.1, 0.05, 0.01)
 
 library(xtable)
 xtable(FPs)
+% latex table generated in R 4.1.1 by xtable 1.8-4 package
+% Thu Mar 17 16:48:14 2022
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrr}
+\hline
+& 0.1 & 0.05 & 0.01 \\ 
+\hline
+distinct.basics & 0.12 & 0.08 & 0.02 \\ 
+distinct.cpm & 0.12 & 0.08 & 0.02 \\ 
+distinct.linnorm & 0.13 & 0.09 & 0.03 \\ 
+distinct.logcounts & 0.15 & 0.10 & 0.04 \\ 
+distinct.vstresiduals & 0.15 & 0.10 & 0.03 \\ 
+edgeR.basics & 0.09 & 0.05 & 0.01 \\ 
+edgeR.counts & 0.07 & 0.03 & 0.01 \\ 
+edgeR.cpm & 0.07 & 0.03 & 0.00 \\ 
+edgeR.linnorm & 0.06 & 0.03 & 0.00 \\ 
+limma-trend.basics & 0.14 & 0.08 & 0.02 \\ 
+limma-trend.cpm & 0.19 & 0.12 & 0.05 \\ 
+limma-trend.linnorm & 0.15 & 0.09 & 0.03 \\ 
+limma-trend.logcounts & 0.14 & 0.08 & 0.02 \\ 
+limma-trend.vstresiduals & 0.14 & 0.08 & 0.02 \\ 
+limma-voom.counts & 0.11 & 0.06 & 0.02 \\ 
+\hline
+\end{tabular}
+\end{table}
+
 
 FPs_adj.loc = t(sapply( split(p_vals_filt$p_adj.loc, p_vals_filt$method), function(x){
   c(mean(x< 0.1), mean(x< 0.05), mean(x< 0.01) )
@@ -220,7 +230,32 @@ colnames(FPs_adj.loc) = c(0.1, 0.05, 0.01)
 
 library(xtable)
 xtable(FPs_adj.loc)
-
+% latex table generated in R 4.1.1 by xtable 1.8-4 package
+% Thu Mar 17 16:48:48 2022
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrr}
+\hline
+& 0.1 & 0.05 & 0.01 \\ 
+\hline
+distinct.basics & 0.01 & 0.01 & 0.00 \\ 
+distinct.cpm & 0.01 & 0.01 & 0.00 \\ 
+distinct.linnorm & 0.01 & 0.01 & 0.00 \\ 
+distinct.logcounts & 0.02 & 0.01 & 0.00 \\ 
+distinct.vstresiduals & 0.01 & 0.01 & 0.00 \\ 
+edgeR.basics & 0.00 & 0.00 & 0.00 \\ 
+edgeR.counts & 0.00 & 0.00 & 0.00 \\ 
+edgeR.cpm & 0.00 & 0.00 & 0.00 \\ 
+edgeR.linnorm & 0.00 & 0.00 & 0.00 \\ 
+limma-trend.basics & 0.01 & 0.00 & 0.00 \\ 
+limma-trend.cpm & 0.04 & 0.04 & 0.00 \\ 
+limma-trend.linnorm & 0.02 & 0.01 & 0.00 \\ 
+limma-trend.logcounts & 0.01 & 0.01 & 0.00 \\ 
+limma-trend.vstresiduals & 0.01 & 0.01 & 0.00 \\ 
+limma-voom.counts & 0.01 & 0.01 & 0.00 \\ 
+\hline
+\end{tabular}
+\end{table}
 
 FPs_adj.glb = t(sapply( split(p_vals_filt$p_adj.glb, p_vals_filt$method), function(x){
   c(mean(x< 0.1), mean(x< 0.05), mean(x< 0.01) )
@@ -229,7 +264,32 @@ colnames(FPs_adj.glb) = c(0.1, 0.05, 0.01)
 
 library(xtable)
 xtable(FPs_adj.glb)
-
+% latex table generated in R 4.1.1 by xtable 1.8-4 package
+% Thu Mar 17 16:48:58 2022
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrr}
+\hline
+& 0.1 & 0.05 & 0.01 \\ 
+\hline
+distinct.basics & 0.01 & 0.01 & 0.00 \\ 
+distinct.cpm & 0.01 & 0.00 & 0.00 \\ 
+distinct.linnorm & 0.01 & 0.01 & 0.00 \\ 
+distinct.logcounts & 0.02 & 0.01 & 0.00 \\ 
+distinct.vstresiduals & 0.01 & 0.01 & 0.00 \\ 
+edgeR.basics & 0.00 & 0.00 & 0.00 \\ 
+edgeR.counts & 0.00 & 0.00 & 0.00 \\ 
+edgeR.cpm & 0.00 & 0.00 & 0.00 \\ 
+edgeR.linnorm & 0.00 & 0.00 & 0.00 \\ 
+limma-trend.basics & 0.00 & 0.00 & 0.00 \\ 
+limma-trend.cpm & 0.00 & 0.00 & 0.00 \\ 
+limma-trend.linnorm & 0.00 & 0.00 & 0.00 \\ 
+limma-trend.logcounts & 0.00 & 0.00 & 0.00 \\ 
+limma-trend.vstresiduals & 0.00 & 0.00 & 0.00 \\ 
+limma-voom.counts & 0.00 & 0.00 & 0.00 \\ 
+\hline
+\end{tabular}
+\end{table}
 
 all_FP = data.frame(cbind(FPs, FPs_adj.glb, FPs_adj.loc))
 colnames(all_FP) = rep(c(0.1, 0.05, 0.01),  3)
@@ -237,3 +297,27 @@ library(xtable)
 xtable(all_FP)
 # Supplementary Table 3
 
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrrrrr}
+\hline
+& 0.1 & 0.05 & 0.01 & 0.1 & 0.05 & 0.01 & 0.1 & 0.05 & 0.01 \\ 
+\hline
+distinct.basics & 0.12 & 0.08 & 0.02 & 0.01 & 0.01 & 0.00 & 0.01 & 0.01 & 0.00 \\ 
+distinct.cpm & 0.12 & 0.08 & 0.02 & 0.01 & 0.00 & 0.00 & 0.01 & 0.01 & 0.00 \\ 
+distinct.linnorm & 0.13 & 0.09 & 0.03 & 0.01 & 0.01 & 0.00 & 0.01 & 0.01 & 0.00 \\ 
+distinct.logcounts & 0.15 & 0.10 & 0.04 & 0.02 & 0.01 & 0.00 & 0.02 & 0.01 & 0.00 \\ 
+distinct.vstresiduals & 0.15 & 0.10 & 0.03 & 0.01 & 0.01 & 0.00 & 0.01 & 0.01 & 0.00 \\ 
+edgeR.basics & 0.09 & 0.05 & 0.01 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\ 
+edgeR.counts & 0.07 & 0.03 & 0.01 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\ 
+edgeR.cpm & 0.07 & 0.03 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\ 
+edgeR.linnorm & 0.06 & 0.03 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\ 
+limma-trend.basics & 0.14 & 0.08 & 0.02 & 0.00 & 0.00 & 0.00 & 0.01 & 0.00 & 0.00 \\ 
+limma-trend.cpm & 0.19 & 0.12 & 0.05 & 0.00 & 0.00 & 0.00 & 0.04 & 0.04 & 0.00 \\ 
+limma-trend.linnorm & 0.15 & 0.09 & 0.03 & 0.00 & 0.00 & 0.00 & 0.02 & 0.01 & 0.00 \\ 
+limma-trend.logcounts & 0.14 & 0.08 & 0.02 & 0.00 & 0.00 & 0.00 & 0.01 & 0.01 & 0.00 \\ 
+limma-trend.vstresiduals & 0.14 & 0.08 & 0.02 & 0.00 & 0.00 & 0.00 & 0.01 & 0.01 & 0.00 \\ 
+limma-voom.counts & 0.11 & 0.06 & 0.02 & 0.00 & 0.00 & 0.00 & 0.01 & 0.01 & 0.00 \\ 
+\hline
+\end{tabular}
+\end{table}

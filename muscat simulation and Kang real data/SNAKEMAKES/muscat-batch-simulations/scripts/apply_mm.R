@@ -10,7 +10,7 @@ apply_mm <- function(sce, pars, ds_only = TRUE) {
     t <- system.time({
         pars[sapply(pars, `==`, "")] <- NULL
 	
-        pars$n_threads = 3
+        pars$n_threads = 1
 
 	# add patient id as covariate:
 	sce$patient_id = as.numeric(factor(substring(sce$sample_id, 1, 7)))
